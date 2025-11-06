@@ -1,9 +1,8 @@
-// lib/supabase/server.ts
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
 export async function createClient() {
-  const cookieStore = await cookies(); // ← await is required in Next 15
+  const cookieStore = await cookies();
 
   return createServerClient(
     process.env.SUPABASE_URL!,
@@ -14,10 +13,19 @@ export async function createClient() {
           return cookieStore.get(name)?.value;
         },
         set(name: string, value: string, options: CookieOptions) {
-          cookieStore.set({ name, value, ...options });
+          try {
+            // ✅ Allowed in Server Actions/Route Handlers; will throw in RSC
+            cookieStore.set({ name, value, ...options });
+          } catch {
+            // RSC render path: ignore (middleware handles refresh)
+          }
         },
         remove(name: string, options: CookieOptions) {
-          cookieStore.set({ name, value: '', ...options, expires: new Date(0) });
+          try {
+            cookieStore.set({ name, value: '', ...options, expires: new Date(0) });
+          } catch {
+            // RSC render path: ignore
+          }
         },
       },
     }
