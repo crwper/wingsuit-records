@@ -142,11 +142,17 @@ export default async function SequenceEditorPage({
                   <div className="font-medium">
                     #{s.step_index} • {s.label ?? 'Untitled'} — {formationMap.get(s.formation_id) ?? 'Formation'}
                   </div>
-                  <form action={autoAssignStepAction}>
-                    <input type="hidden" name="sequenceId" value={sequence.id} />
-                    <input type="hidden" name="stepId" value={s.id} />
-                    <button className="text-sm underline">Auto‑assign</button>
-                  </form>
+                  <div className="flex items-center gap-3">
+                    <form action={autoAssignStepAction}>
+                      <input type="hidden" name="sequenceId" value={sequence.id} />
+                      <input type="hidden" name="stepId" value={s.id} />
+                      <button className="text-sm underline">Auto‑assign</button>
+                    </form>
+                    {/* NEW */}
+                    <Link className="text-sm underline" href={`/sequences/${sequence.id}/steps/${s.id}`}>
+                      Edit mapping
+                    </Link>
+                  </div>
                 </div>
                 <div className="text-xs text-gray-600">
                   Assignments: {counts[s.id] ?? 0} / {roster.length}
