@@ -66,3 +66,18 @@ export async function autoAssignStepAction(formData: FormData) {
 
   revalidatePath(`/sequences/${sequenceId}`);
 }
+
+export async function computeDifferencesAction(formData: FormData) {
+  const sequenceId = String(formData.get('sequenceId') ?? '');
+  if (!sequenceId) throw new Error('Missing sequence id');
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('compute_adjacency_for_sequence', {
+    p_sequence_id: sequenceId,
+    p_wrap: true, // include last→first
+  });
+  if (error) throw new Error(error.message);
+
+  const { revalidatePath } = await import('next/cache');
+  revalidatePath(`/sequences/${sequenceId}`);
+}

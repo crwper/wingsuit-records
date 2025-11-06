@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { addStepAction, saveRosterAction, autoAssignStepAction } from './actions';
+import { addStepAction, saveRosterAction, autoAssignStepAction, computeDifferencesAction } from './actions';
 
 export default async function SequenceEditorPage({
   params,
@@ -43,8 +43,45 @@ export default async function SequenceEditorPage({
     .order('step_index', { ascending: true });
   const steps = stepsData ?? [];
 
-  // count assignments per step (guard nulls)
   const stepIds = steps.map((s) => s.id);
+
+  let checks: Array<{
+    step_a_id: string;
+    step_b_id: string;
+    rotation_deg: number;
+    tx: number;
+    ty: number;
+    max_overlap_count: number;
+    n_size: number;
+    threshold: number;
+    different: boolean;
+    computed_at: string;
+  }> = [];
+
+  if (stepIds.length > 0) {
+    const { data: checksData } = await supabase
+      .from('adjacency_checks')
+      .select('step_a_id, step_b_id, rotation_deg, tx, ty, max_overlap_count, n_size, threshold, different, computed_at')
+      .in('step_a_id', stepIds)
+      .in('step_b_id', stepIds);
+    checks = checksData ?? [];
+  }
+
+  // Build a map for quick lookup
+  const checkMap = new Map<string, (typeof checks)[number]>();
+  for (const c of checks) checkMap.set(`${c.step_a_id}->${c.step_b_id}`, c);
+
+  // Build the ordered adjacent pairs (include wrap-around)
+  const pairs: Array<{ a: typeof steps[number]; b: typeof steps[number] }> = [];
+  if (steps.length > 0) {
+    for (let i = 0; i < steps.length; i++) {
+      const a = steps[i];
+      const b = steps[(i + 1) % steps.length];
+      pairs.push({ a, b });
+    }
+  }
+
+  // count assignments per step (guard nulls)
   let counts: Record<string, number> = {};
   if (stepIds.length > 0) {
     const { data: aData, error: aErr } = await supabase
@@ -159,6 +196,48 @@ export default async function SequenceEditorPage({
                 </div>
               </li>
             ))}
+          </ul>
+        )}
+      </section>
+
+      {/* Differences HUD */}
+      <section className="rounded border bg-white p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="font-semibold">Differences (adjacent pairs{steps.length > 1 ? ' incl. wrap' : ''})</div>
+          <form action={computeDifferencesAction}>
+            <input type="hidden" name="sequenceId" value={sequence.id} />
+            <button className="text-sm underline">Recompute differences</button>
+          </form>
+        </div>
+
+        {pairs.length <= 1 ? (
+          <div className="text-sm text-gray-600">Add at least two steps to compute differences.</div>
+        ) : (
+          <ul className="space-y-2">
+            {pairs.map(({ a, b }) => {
+              const c = checkMap.get(`${a.id}->${b.id}`);
+              return (
+                <li key={`${a.id}->${b.id}`} className="rounded border p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="font-medium">
+                      Step #{a.step_index} → #{b.step_index}
+                    </div>
+                    <div className={`text-xs ${c ? (c.different ? 'text-green-700' : 'text-red-700') : 'text-gray-500'}`}>
+                      {c
+                        ? (c.different
+                            ? `PASS (different): overlap ${c.max_overlap_count}/${c.n_size}, threshold ${c.threshold}, rotation ${c.rotation_deg}°, t=(${c.tx},${c.ty})`
+                            : `FAIL (not different): overlap ${c.max_overlap_count}/${c.n_size}, threshold ${c.threshold}, rotation ${c.rotation_deg}°, t=(${c.tx},${c.ty})`)
+                        : 'Not computed yet'}
+                    </div>
+                  </div>
+                  {c && (
+                    <div className="text-[11px] text-gray-600">
+                      Computed {new Date(c.computed_at).toLocaleString()}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>
