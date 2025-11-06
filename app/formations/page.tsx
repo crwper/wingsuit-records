@@ -1,5 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { createFormationAction } from './actions';
+import Link from 'next/link';
+import DeleteWithConfirm from '@/components/DeleteWithConfirm';
 
 export default async function FormationsPage() {
   const supabase = await createClient();
@@ -49,8 +51,10 @@ export default async function FormationsPage() {
                 {f.updated_at && ' • Updated: ' + new Date(f.updated_at).toLocaleString()}
               </div>
               {f.notes && <div className="mt-1 text-sm text-gray-700">{f.notes}</div>}
-              <div className="mt-2">
-                <a className="text-sm underline" href={`/formations/${f.id}`}>Edit</a>
+
+              <div className="mt-2 flex items-center gap-3">
+                <Link className="text-sm underline" href={`/formations/${f.id}`}>Edit</Link>
+                <DeleteWithConfirm id={f.id} title={f.title} />
               </div>
             </li>
           ))}

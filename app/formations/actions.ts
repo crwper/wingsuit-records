@@ -19,3 +19,18 @@ export async function createFormationAction(formData: FormData) {
 
   revalidatePath('/formations');
 }
+
+export async function deleteFormationAction(formData: FormData) {
+  const id = String(formData.get('id') ?? '');
+  if (!id) throw new Error('Missing formation id');
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Must be signed in');
+
+  // RLS ensures only the owner can delete.
+  const { error } = await supabase.from('formations').delete().eq('id', id);
+  if (error) throw new Error(error.message);
+
+  revalidatePath('/formations');
+}
