@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { swapFlyersAction } from './actions';
+import StepMappingVisual from '@/components/StepMappingVisual';
 
 export default async function StepMappingPage({
   params,
@@ -43,6 +44,14 @@ export default async function StepMappingPage({
     .order('col', { ascending: true });
   const cells = cellsData ?? [];
 
+  // Fetch the stored view rotation
+  const { data: formationView } = await supabase
+    .from('formations')
+    .select('view_rotation_deg')
+    .eq('id', step.formation_id)
+    .single();
+  const viewRotationDeg = formationView?.view_rotation_deg ?? 0;
+
   // Map helpers
   const cellByIndex = new Map<number, { col: number; row: number }>();
   for (const c of cells) cellByIndex.set(c.cell_index, { col: c.col, row: c.row });
@@ -66,36 +75,16 @@ export default async function StepMappingPage({
         </div>
       </header>
 
-      {/* Current mapping table */}
+      {/* Visual mapping */}
       <section className="rounded border bg-white p-4 space-y-3">
         <div className="font-semibold">Current mapping</div>
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-left text-xs text-gray-600">
-              <th className="py-1">Flyer</th>
-              <th className="py-1">Cell index</th>
-              <th className="py-1">Cell (col,row)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {roster.map((r) => {
-              const idx = cellIndexByFlyer.get(r.flyer_id);
-              const pos = idx != null ? cellByIndex.get(idx) : undefined;
-              return (
-                <tr key={r.flyer_id} className="border-t">
-                  <td className="py-1">{r.flyer_id}</td>
-                  <td className="py-1">{idx ?? '—'}</td>
-                  <td className="py-1">
-                    {pos ? `(${pos.col}, ${pos.row})` : '—'}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-        <p className="text-xs text-gray-600">
-          Mapping is a bijection: each flyer appears exactly once and every cell has exactly one flyer.
-        </p>
+        <StepMappingVisual
+          cells={cells as { cell_index: number; col: number; row: number }[]}
+          roster={(roster as { flyer_id: string; roster_index: number }[]).sort((a, b) => a.roster_index - b.roster_index)}
+          assignments={assignments as { flyer_id: string; formation_cell_index: number }[]}
+          cellSize={32}
+          viewRotationDeg={viewRotationDeg}                 // ← pass rotation
+        />
       </section>
 
       {/* Swap control */}

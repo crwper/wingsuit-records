@@ -4,18 +4,13 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import FormationGridEditor from '@/components/FormationGridEditor';
 
-export default async function FormationEditorPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params; // ← await the async params
-
+export default async function FormationEditorPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const supabase = await createClient();
 
   const { data: formation, error: fErr } = await supabase
     .from('formations')
-    .select('id, title, notes, created_at, updated_at, version')
+    .select('id, title, notes, created_at, updated_at, version, view_rotation_deg') // ← add
     .eq('id', id)
     .single();
 
@@ -38,9 +33,7 @@ export default async function FormationEditorPage({
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Link href="/formations" className="text-sm underline">
-            Back to formations
-          </Link>
+          <Link href="/formations" className="text-sm underline">Back to formations</Link>
         </div>
       </header>
 
@@ -48,6 +41,7 @@ export default async function FormationEditorPage({
         <FormationGridEditor
           formationId={formation.id}
           initialCells={cells as { col: number; row: number }[]}
+          viewRotationDeg={formation.view_rotation_deg ?? 0}  // ← pass down
         />
       </section>
     </main>

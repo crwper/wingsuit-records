@@ -24,9 +24,11 @@ function computeBounds(cells: Cell[]) {
 export default function FormationGridEditor({
   formationId,
   initialCells,
+  viewRotationDeg = 0,
 }: {
   formationId: string;
   initialCells: Cell[];
+  viewRotationDeg?: number;
 }) {
   const [cellSet, setCellSet] = useState<Set<string>>(
     () => new Set(initialCells.map((c) => key(c.col, c.row))),
@@ -34,9 +36,9 @@ export default function FormationGridEditor({
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [bounds, setBounds] = useState(() => computeBounds(initialCells));
+  const [rotation, setRotation] = useState<number>(viewRotationDeg);
 
   useEffect(() => {
-    // When opening an existing formation with cells, fit the view
     if (initialCells.length > 0) setBounds(computeBounds(initialCells));
   }, [initialCells.length]);
 
@@ -77,68 +79,114 @@ export default function FormationGridEditor({
     }));
   }
 
-  async function onSave() {
+  async function onSaveCells() {
     setError(null);
     setInfo(null);
-
     const supabase = createClient();
     const payload = Array.from(cellSet).map((s) => {
       const [col, row] = s.split(',').map(Number);
       return { col, row };
     });
-
     const { error } = await supabase.rpc('save_formation_cells', {
       p_formation_id: formationId,
-      p_cells: payload, // JS object → sent as JSONB
+      p_cells: payload,
     });
-
-    if (error) {
-      setError(error.message);
-    } else {
-      setInfo('Saved.');
-    }
+    if (error) setError(error.message);
+    else setInfo('Cells saved.');
   }
+
+  async function onSaveRotation() {
+    setError(null);
+    setInfo(null);
+    const supabase = createClient();
+    const normalized = (((rotation % 360) + 360) % 360);
+    const { error } = await supabase.rpc('set_formation_view_rotation', {
+      p_formation_id: formationId,
+      p_deg: normalized,
+    });
+    if (error) setError(error.message);
+    else setInfo('Rotation saved.');
+  }
+
+  function stepRotation(delta: number) {
+    setRotation((r) => {
+      const next = (((r + delta) % 360) + 360) % 360;
+      const snapped = Math.round(next / 45) * 45;
+      return snapped % 360;
+    });
+  }
+
+  // --- Viewport & scale-to-fit for the rotated grid ---
+  const cellPx = 24;
+  const widthPx  = cols.length * cellPx;
+  const heightPx = rows.length * cellPx;
+
+  const viewportPx = 420; // change if you want bigger/smaller frame
+  const theta = (rotation * Math.PI) / 180;
+  const rotW = Math.abs(widthPx  * Math.cos(theta)) + Math.abs(heightPx * Math.sin(theta));
+  const rotH = Math.abs(widthPx  * Math.sin(theta)) + Math.abs(heightPx * Math.cos(theta));
+  const scale = Math.min(1, viewportPx / Math.max(rotW, rotH));
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
+      {/* TOP BAR — rotation controls (restored) */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="text-sm text-gray-600">
           View: cols {bounds.minCol}..{bounds.maxCol}, rows {bounds.minRow}..{bounds.maxRow}
         </div>
-        <div className="flex gap-2">
-          <button onClick={() => expand(1)} className="rounded border px-2 py-1 text-sm">
-            Expand
-          </button>
-          <button onClick={() => setCellSet(new Set())} className="rounded border px-2 py-1 text-sm">
-            Clear
-          </button>
-          <button onClick={onSave} className="rounded bg-black px-3 py-1.5 text-white text-sm">
-            Save
+        <div className="flex items-center gap-2">
+          <div className="text-sm text-gray-700">Rotation: {rotation}°</div>
+          <button onClick={() => stepRotation(-45)} className="rounded border px-2 py-1 text-sm">↺ −45°</button>
+          <button onClick={() => stepRotation(+45)} className="rounded border px-2 py-1 text-sm">↻ +45°</button>
+          <button onClick={() => setRotation(0)} className="rounded border px-2 py-1 text-sm">Reset</button>
+          <button onClick={onSaveRotation} className="rounded bg-black px-3 py-1.5 text-white text-sm">
+            Save rotation
           </button>
         </div>
       </div>
 
-      <div
-        className="grid gap-px bg-gray-300 p-px rounded"
-        style={{ gridTemplateColumns: `repeat(${cols.length}, 24px)` }}
-      >
-        {rows.map((row) =>
-          cols.map((col) => {
-            const active = has(col, row);
-            return (
-              <button
-                key={`${col}:${row}`}
-                onClick={() => toggle(col, row)}
-                className={`w-6 h-6 ${active ? 'bg-black' : 'bg-white'} hover:opacity-80 focus:outline-none`}
-                title={`(${col}, ${row})`}
-              />
-            );
-          }),
-        )}
+      {/* CLIPPED, CENTERED, SCALED VIEWPORT */}
+      <div className="relative w-full max-w-[420px] aspect-square overflow-hidden rounded border mx-auto">
+        <div
+          className="absolute left-1/2 top-1/2"
+          style={{
+            width: widthPx,
+            height: heightPx,
+            transform: `translate(-50%, -50%) rotate(${rotation}deg) scale(${scale})`,
+            transformOrigin: 'center',
+          }}
+        >
+          <div
+            className="grid gap-px bg-gray-300 p-px rounded"
+            style={{ gridTemplateColumns: `repeat(${cols.length}, ${cellPx}px)` }}
+          >
+            {rows.map((row) =>
+              cols.map((col) => {
+                const active = has(col, row);
+                return (
+                  <button
+                    key={`${col}:${row}`}
+                    onClick={() => toggle(col, row)}
+                    className={`w-6 h-6 ${active ? 'bg-black' : 'bg-white'} hover:opacity-80 focus:outline-none`}
+                    title={`(${col}, ${row})`}
+                  />
+                );
+              }),
+            )}
+          </div>
+        </div>
       </div>
 
-      <div className="text-xs text-gray-600">
-        Click to toggle cells. Save enforces 4‑neighbor connectivity on the server.
+      {/* FOOTER — cells actions */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="text-xs text-gray-600">
+          Click to toggle cells. Save enforces 4-neighbor connectivity on the server.
+        </div>
+        <div className="flex gap-2">
+          <button onClick={() => expand(1)} className="rounded border px-2 py-1 text-sm">Expand</button>
+          <button onClick={() => setCellSet(new Set())} className="rounded border px-2 py-1 text-sm">Clear</button>
+          <button onClick={onSaveCells} className="rounded bg-black px-3 py-1.5 text-white text-sm">Save cells</button>
+        </div>
       </div>
 
       {error && <div className="text-sm text-red-600">Error: {error}</div>}
