@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import {addStepAction, saveRosterAction, autoAssignStepAction, computeDifferencesAction } from './actions';
+import { addStepAction, saveRosterAction, computeDifferencesAction } from './actions';
 import DeleteStepWithConfirm from '@/components/DeleteStepWithConfirm';
 
 export default async function SequenceEditorPage({
@@ -178,16 +178,9 @@ export default async function SequenceEditorPage({
                     #{s.step_index} • {s.label ?? 'Untitled'} — {formationMap.get(s.formation_id) ?? 'Formation'}
                   </div>
                   <div className="flex items-center gap-3">
-                    {/* (We’ll remove Auto-assign later per R-5, leaving it for now) */}
-                    <form action={autoAssignStepAction}>
-                      <input type="hidden" name="sequenceId" value={sequence.id} />
-                      <input type="hidden" name="stepId" value={s.id} />
-                      <button className="text-sm underline">Auto-assign</button>
-                    </form>
                     <Link className="text-sm underline" href={`/sequences/${sequence.id}/steps/${s.id}`}>
                       Edit mapping
                     </Link>
-                    {/* NEW: Delete step */}
                     <DeleteStepWithConfirm sequenceId={sequence.id} stepId={s.id} />
                   </div>
                 </div>

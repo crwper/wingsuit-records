@@ -23,14 +23,6 @@ if (-not (Get-Command supabase -ErrorAction SilentlyContinue)) {
   throw "Supabase CLI not found on PATH. Install it and try again."
 }
 
-# Backup existing file (timestamped), if present
-if (Test-Path $dest -PathType Leaf) {
-  $stamp = Get-Date -Format "yyyyMMdd-HHmmss"
-  $backup = Join-Path $destDir ("schema.sql.$stamp.bak")
-  Copy-Item $dest $backup -Force
-  Write-Host "Backed up existing schema to $backup"
-}
-
 # Build args and run
 $args = @('db','dump','--schema', $Schema, '--file', $dest)
 if ($DbUrl) { $args += @('--db-url', $DbUrl) }
