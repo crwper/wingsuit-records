@@ -67,8 +67,8 @@ export default function StepMappingVisual({
   return (
     <div className="space-y-4">
       {/* Numbered roster ABOVE the visual grid */}
-      <section className="rounded border bg-white p-3">
-        <div className="font-semibold text-sm mb-2">Roster</div>
+      <section className="rounded border bg-white p-4">
+        <div className="font-semibold text-sm mb-1">Roster</div>
         {roster.length === 0 ? (
           <div className="text-xs text-amber-700">
             No roster saved for this sequence yet. Save a roster to see numbered slots.
@@ -82,11 +82,11 @@ export default function StepMappingVisual({
                   <th>Flyer</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="leading-5">
                 {roster.map((r, i) => (
                   <tr key={r.flyer_id}>
-                    <td className="py-1 pr-2 font-mono tabular-nums">{i + 1}</td>
-                    <td className="py-1">{r.flyer_id}</td>
+                    <td className="pr-2 font-mono tabular-nums py-0.5">{i + 1}</td>
+                    <td className="py-0.5">{r.flyer_id}</td>
                   </tr>
                 ))}
               </tbody>
