@@ -148,7 +148,7 @@ export default async function SequenceEditorPage({
           <div>
             <label className="block text-xs text-gray-600 mb-1">Formation</label>
             <select name="formationId" className="rounded border p-2 text-sm">
-              {formations.map(f => (
+              {formations.map((f: { id: string; title: string }) => (
                 <option key={f.id} value={f.id}>{f.title}</option>
               ))}
             </select>
