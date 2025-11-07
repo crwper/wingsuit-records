@@ -570,33 +570,41 @@ declare
   v_owner uuid;
   v_count int;
 begin
-  select owner_user_id into v_owner from public.sequences where id = p_sequence_id;
-  if v_owner is null then raise exception 'sequence not found'; end if;
-  if v_owner <> auth.uid() then raise exception 'not authorized (owner)'; end if;
+  select owner_user_id into v_owner
+  from public.sequences
+  where id = p_sequence_id;
 
-  -- Dedup and preserve first-seen order
-  with raw as (
-    select x as flyer_id, ord
-    from jsonb_array_elements_text(p_roster) with ordinality as t(x, ord)
-  ),
-  cleaned as (
-    select min(ord) as ord, trim(flyer_id) as flyer_id
-    from raw
+  if v_owner is null then
+    raise exception 'sequence not found';
+  end if;
+  if v_owner <> auth.uid() then
+    raise exception 'not authorized (owner)';
+  end if;
+
+  -- Count deduped, non-empty flyers in ONE statement
+  select count(*) into v_count
+  from (
+    select min(ord) as ord
+    from jsonb_array_elements_text(p_roster) with ordinality as t(flyer_id, ord)
     where trim(flyer_id) <> ''
     group by trim(flyer_id)
-  ),
-  cnt as (select count(*)::int as c from cleaned)
-  select c into v_count from cnt;
+  ) dedup;
 
   if v_count = 0 then
     raise exception 'roster cannot be empty';
   end if;
 
+  -- Replace roster using a fresh dedup (no cross‑statement CTE)
   delete from public.sequence_roster where sequence_id = p_sequence_id;
 
   insert into public.sequence_roster (sequence_id, flyer_id, roster_index)
   select p_sequence_id, flyer_id, row_number() over (order by ord) - 1
-  from cleaned;
+  from (
+    select min(ord) as ord, trim(flyer_id) as flyer_id
+    from jsonb_array_elements_text(p_roster) with ordinality as t(flyer_id, ord)
+    where trim(flyer_id) <> ''
+    group by trim(flyer_id)
+  ) dedup2;
 end
 $$;
 
