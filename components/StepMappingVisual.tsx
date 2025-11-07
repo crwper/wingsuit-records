@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
@@ -40,127 +40,213 @@ export default function StepMappingVisual({
   const router = useRouter();
   const supabase = createClient();
 
-  // --- Local, optimistic mapping state (kept in sync with props) -------------
-  const [localAssign, setLocalAssign] = useState<Assignment[]>(assignments);
-  useEffect(() => setLocalAssign(assignments), [assignments]);
-
-  // flyer_id -> roster number (1..N)
+  // ----- roster -> label (1..N) ---------------------------------------------
   const rosterNumber = useMemo(() => {
     const m = new Map<string, number>();
     roster.forEach((r, i) => m.set(r.flyer_id, i + 1));
     return m;
   }, [roster]);
 
-  // cell_index -> flyer_id (from localAssign)
-  const flyerByCell = useMemo(() => {
-    const m = new Map<number, string>();
-    for (const a of localAssign) m.set(a.formation_cell_index, a.flyer_id);
+  // ----- mapping: cell_index -> {flyer_id, label} ---------------------------
+  const baseMapping = useMemo(() => {
+    const m = new Map<number, { flyer_id: string; label: number }>();
+    for (const a of assignments) {
+      const label = rosterNumber.get(a.flyer_id);
+      if (label != null) m.set(a.formation_cell_index, { flyer_id: a.flyer_id, label });
+    }
     return m;
-  }, [localAssign]);
+  }, [assignments, rosterNumber]);
 
-  // --- Drag state ------------------------------------------------------------
-  const [dragOrigin, setDragOrigin] = useState<number | null>(null); // cell_index
-  const [hoverCell, setHoverCell] = useState<number | null>(null);   // cell_index
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [mapping, setMapping] = useState(baseMapping);
+  useEffect(() => setMapping(baseMapping), [baseMapping]);
 
-  const dragging = dragOrigin !== null;
-
-  // Resolve which flyer is visually in a given cell considering swap preview
-  function renderedFlyerForCell(idx: number): string | null {
-    const origin = dragOrigin;
-    const hover  = hoverCell;
-    let flyer = flyerByCell.get(idx) ?? null;
-    if (origin != null && hover != null && hover !== origin) {
-      if (idx === origin) flyer = flyerByCell.get(hover) ?? null;
-      else if (idx === hover) flyer = flyerByCell.get(origin) ?? null;
-    }
-    return flyer;
-  }
-
-  function renderedLabelForCell(idx: number): number | null {
-    const flyer = renderedFlyerForCell(idx);
-    if (!flyer) return null;
-    return rosterNumber.get(flyer) ?? null;
-  }
-
-  async function commitSwap(origin: number, target: number) {
-    const flyerA = flyerByCell.get(origin);
-    const flyerB = flyerByCell.get(target);
-    if (!flyerA || !flyerB) return; // ignore invalid
-    setErrorMsg(null);
-
-    // Optimistic local update
-    setLocalAssign((prev) => prev.map((a) => {
-      if (a.flyer_id === flyerA) return { ...a, formation_cell_index: target };
-      if (a.flyer_id === flyerB) return { ...a, formation_cell_index: origin };
-      return a;
-    }));
-
-    // Commit to DB
-    const { error } = await supabase.rpc('swap_step_flyers', {
-      p_sequence_step_id: stepId,
-      p_flyer_a: flyerA,
-      p_flyer_b: flyerB,
-    });
-
-    if (error) {
-      // Roll back local change on error
-      setLocalAssign((prev) => prev.map((a) => {
-        if (a.flyer_id === flyerA) return { ...a, formation_cell_index: origin };
-        if (a.flyer_id === flyerB) return { ...a, formation_cell_index: target };
-        return a;
-      }));
-      setErrorMsg(error.message);
-    } else {
-      // Refresh server components (counts, etc.)
-      router.refresh();
-    }
-  }
-
-  function onPointerDownCell(idx: number) {
-    const flyer = flyerByCell.get(idx);
-    if (!flyer) return; // only start drag if a flyer is present
-    setDragOrigin(idx);
-    setHoverCell(idx);
-  }
-
-  function onPointerEnterCell(idx: number) {
-    if (!dragging) return;
-    setHoverCell(idx);
-  }
-
-  function onPointerUp() {
-    if (dragOrigin != null && hoverCell != null && hoverCell !== dragOrigin) {
-      void commitSwap(dragOrigin, hoverCell);
-    }
-    setDragOrigin(null);
-    setHoverCell(null);
-  }
-
-  // --- Grid geometry + viewport --------------------------------------------
+  // ----- geometry & transforms ----------------------------------------------
   const { minCol, maxCol, minRow, maxRow } = computeBounds(cells);
   const cols = Math.max(0, maxCol - minCol + 1);
   const rows = Math.max(0, maxRow - minRow + 1);
-  const widthPx = cols * cellSize;
+
+  const widthPx  = cols * cellSize;
   const heightPx = rows * cellSize;
 
-  // Clip in a square viewport and scale-to-fit when rotated
-  const viewportPx = 420; // tweak if you want larger/smaller
   const theta = (viewRotationDeg * Math.PI) / 180;
-  const rotW = Math.abs(widthPx * Math.cos(theta)) + Math.abs(heightPx * Math.sin(theta));
-  const rotH = Math.abs(widthPx * Math.sin(theta)) + Math.abs(heightPx * Math.cos(theta));
-  const scale = Math.min(1, viewportPx / Math.max(rotW, rotH));
+  const cosT = Math.cos(theta);
+  const sinT = Math.sin(theta);
 
-  // Quick lookup: (col,row) -> cell_index
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const [viewportSize, setViewportSize] = useState<number>(420); // actual px of the square box
+  useEffect(() => {
+    const el = viewportRef.current;
+    if (!el) return;
+    const obs = new ResizeObserver(([entry]) => {
+      const box = entry.contentBoxSize?.[0];
+      const w = box ? box.inlineSize : el.getBoundingClientRect().width;
+      setViewportSize(w);
+    });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
+  // Grid is rotated+scaled to fit the square viewport
+  const rotW = Math.abs(widthPx * cosT) + Math.abs(heightPx * sinT);
+  const rotH = Math.abs(widthPx * sinT) + Math.abs(heightPx * cosT);
+  const scale = Math.min(1, viewportSize / Math.max(rotW, rotH));
+
+  // position lookup: (col,row) -> cell_index
   const indexByPos = useMemo(() => {
     const m = new Map<string, number>();
     for (const c of cells) m.set(`${c.col},${c.row}`, c.cell_index);
     return m;
   }, [cells]);
 
+  // ----- drag state & ghost --------------------------------------------------
+  const [dragOrigin, setDragOrigin] = useState<number | null>(null); // cell_index
+  const [hoverCell, setHoverCell]   = useState<number | null>(null); // cell_index under pointer (assigned)
+  const [dragging, setDragging]     = useState(false);
+  const [ghost, setGhost]           = useState<{ x: number; y: number } | null>(null); // viewport-local coords
+  const [err, setErr]               = useState<string | null>(null);
+
+  const dragOriginSlot = dragOrigin != null ? mapping.get(dragOrigin) ?? null : null;
+
+  // ----- hit-testing in rotated/scaled space --------------------------------
+  function hitTest(localX: number, localY: number): number | null {
+    const vx = localX - viewportSize / 2;
+    const vy = localY - viewportSize / 2;
+
+    const gxScaled = vx / scale;
+    const gyScaled = vy / scale;
+
+    // rotate by -theta
+    const gx =  cosT * gxScaled + sinT * gyScaled;
+    const gy = -sinT * gxScaled + cosT * gyScaled;
+
+    // translate to grid's top-left
+    const ux = gx + widthPx  / 2;
+    const uy = gy + heightPx / 2;
+
+    if (ux < 0 || uy < 0 || ux >= widthPx || uy >= heightPx) return null;
+
+    const cIdx = Math.floor(ux / cellSize);
+    const rIdx = Math.floor(uy / cellSize);
+    const col  = minCol + cIdx;
+    const row  = minRow + rIdx;
+    return indexByPos.get(`${col},${row}`) ?? null;
+  }
+
+  function localPoint(e: React.PointerEvent | PointerEvent) {
+    const el = viewportRef.current!;
+    const rect = el.getBoundingClientRect();
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  }
+
+  // ----- pointer handlers (container-level) ----------------------------------
+  function onPointerMove(e: React.PointerEvent) {
+    const pt = localPoint(e);
+    setGhost(pt);
+
+    const idx = hitTest(pt.x, pt.y);
+    if (dragging) {
+      if (idx != null && mapping.get(idx)) {
+        // while dragging, you can only drop on an assigned cell
+        setHoverCell(idx === dragOrigin ? null : idx);
+      } else {
+        setHoverCell(null);
+      }
+    } else {
+      setHoverCell(idx != null && mapping.get(idx) ? idx : null);
+    }
+  }
+
+  function onPointerEnter(e: React.PointerEvent) {
+    onPointerMove(e);
+  }
+
+  function onPointerLeave() {
+    if (!dragging) {
+      setHoverCell(null);
+      setGhost(null);
+    } else {
+      setHoverCell(null);
+    }
+  }
+
+  function onPointerDown(e: React.PointerEvent) {
+    const pt = localPoint(e);
+    const idx = hitTest(pt.x, pt.y);
+    if (idx == null) return;
+    const slot = mapping.get(idx);
+    if (!slot) return; // only start from assigned cells
+
+    e.preventDefault();
+    (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+    setErr(null);
+    setDragOrigin(idx);
+    setHoverCell(null); // origin is now blank; hover is whichever you move over
+    setDragging(true);
+    setGhost(pt);
+  }
+
+  async function onPointerUp() {
+    const origin = dragOrigin;
+    const target = hoverCell;
+    setDragging(false);
+
+    if (origin == null || target == null || origin === target) {
+      // cancel
+      setDragOrigin(null);
+      setHoverCell(null);
+      setGhost(null);
+      return;
+    }
+
+    const A = mapping.get(origin);
+    const B = mapping.get(target);
+    if (!A || !B) {
+      setDragOrigin(null);
+      setHoverCell(null);
+      setGhost(null);
+      return;
+    }
+
+    // optimistic swap
+    setMapping(prev => {
+      const m = new Map(prev);
+      m.set(origin, B);
+      m.set(target, A);
+      return m;
+    });
+
+    const { error } = await supabase.rpc('swap_step_flyers', {
+      p_sequence_step_id: stepId,
+      p_flyer_a: A.flyer_id,
+      p_flyer_b: B.flyer_id,
+    });
+
+    if (error) {
+      // rollback
+      setMapping(prev => {
+        const m = new Map(prev);
+        m.set(origin, A);
+        m.set(target, B);
+        return m;
+      });
+      setErr(error.message);
+    }
+
+    setDragOrigin(null);
+    setHoverCell(null);
+    setGhost(null);
+
+    // Keep server-side counts etc. up to date
+    router.refresh();
+  }
+
+  // dynamic cursor: hand over assigned slots, grabbing while dragging
+  const cursorStyle = dragging ? 'grabbing' : (hoverCell != null ? 'grab' : 'default');
+
+  // ----- UI ------------------------------------------------------------------
   return (
     <div className="space-y-4">
-      {/* Numbered roster ABOVE the visual grid */}
+      {/* Roster (spacing like your editor) */}
       <section className="rounded border bg-white p-4">
         <div className="font-semibold text-sm mb-1">Roster</div>
         {roster.length === 0 ? (
@@ -189,7 +275,7 @@ export default function StepMappingVisual({
         )}
       </section>
 
-      {/* Formation grid (rotated), numbers upright; drag-to-swap */}
+      {/* Formation grid with drag-to-swap + ghost */}
       <section className="rounded border bg-white p-4">
         <div className="font-semibold text-sm mb-2">Formation</div>
 
@@ -197,9 +283,16 @@ export default function StepMappingVisual({
           <div className="text-xs text-gray-600">This formation has no cells yet.</div>
         ) : (
           <div
+            ref={viewportRef}
             className="relative w-full max-w-[420px] aspect-square overflow-hidden rounded border select-none"
+            style={{ touchAction: 'none', cursor: cursorStyle as any }}
+            onPointerEnter={onPointerEnter}
+            onPointerMove={onPointerMove}
+            onPointerLeave={onPointerLeave}
+            onPointerDown={onPointerDown}
             onPointerUp={onPointerUp}
           >
+            {/* Rotated & scaled grid */}
             <div
               className="absolute left-1/2 top-1/2"
               style={{
@@ -223,41 +316,61 @@ export default function StepMappingVisual({
                     const key = `${col},${row}`;
                     const cellIndex = indexByPos.get(key);
                     const isCell = cellIndex != null;
-                    const label = isCell ? renderedLabelForCell(cellIndex!) : null;
-                    const flyer = isCell ? renderedFlyerForCell(cellIndex!) : null;
 
-                    // Decorations for origin/hover during drag
-                    const isOrigin = dragging && isCell && cellIndex === dragOrigin;
-                    const isHover  = dragging && isCell && cellIndex === hoverCell;
+                    const slot = isCell ? mapping.get(cellIndex!) : undefined;
+                    let label = slot?.label ?? null;
 
-                    // Draggable only if this cell currently has a flyer (in original mapping)
-                    const hasFlyerOriginal = isCell ? (flyerByCell.get(cellIndex!) != null) : false;
-                    const canStartDrag = !!hasFlyerOriginal;
+                    // Is this the hovered drop spot (always dashed blank)?
+                    const isDropSpot =
+                      dragging && isCell && hoverCell === cellIndex && hoverCell !== dragOrigin;
+
+                    // Should the origin be hidden (no tile at origin → only ghost visible)?
+                    const hideOriginOnlyGhost =
+                      dragging && isCell && cellIndex === dragOrigin && (!hoverCell || hoverCell === dragOrigin);
+
+                    // Live preview at origin: if hovering a *different* target, show the target's label at the origin
+                    if (dragging && isCell && cellIndex === dragOrigin && hoverCell && hoverCell !== dragOrigin) {
+                      const targetSlot = mapping.get(hoverCell);
+                      label = targetSlot?.label ?? null;
+                    }
+
+                    // BLANK ORIGIN while dragging
+                    const isBlankOrigin   = dragging && cellIndex === dragOrigin;
+                    // BLANK HOVER target while dragging (if different from origin)
+                    const isBlankDropSpot = dragging && cellIndex === hoverCell && hoverCell !== dragOrigin;
+                    const isBlank = isBlankOrigin || isBlankDropSpot;
+
+                    // Draggable iff this cell currently has an assignment
+                    const isDraggable = isCell && !!slot;
 
                     return (
                       <div
                         key={key}
                         className={[
-                          'relative flex items-center justify-center',
+                          'flex items-center justify-center',
                           isCell ? 'bg-white' : 'bg-gray-300',
-                          canStartDrag ? (dragging ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-not-allowed',
-                          (isOrigin || isHover) ? 'ring-2' : '',
-                          isOrigin ? 'ring-blue-500' : '',
-                          isHover ? 'ring-amber-500' : '',
+                          isDraggable ? 'cursor-pointer cursor-grab active:cursor-grabbing' : 'cursor-not-allowed',
                         ].join(' ')}
-                        style={{ width: cellSize, height: cellSize }}
-                        title={isCell && label != null ? `#${label} ${flyer ?? ''}` : undefined}
-                        onPointerDown={isCell ? () => onPointerDownCell(cellIndex!) : undefined}
-                        onPointerEnter={isCell ? () => onPointerEnterCell(cellIndex!) : undefined}
+                        style={{ width: cellSize, height: cellSize, userSelect: 'none' }}
+                        title={(!isBlank && label != null && slot) ? `#${label} ${slot.flyer_id}` : undefined}
                       >
-                        {isCell && (
-                          // Tile stays rotated with the grid; only the NUMBER text is counter‑rotated
+                        {/* 1) Hovered target: dashed blank drop spot */}
+                        {isCell && isDropSpot && (
                           <div
-                            className={[
-                              'flex items-center justify-center rounded',
-                              label != null ? 'bg-black text-white' : 'bg-white text-gray-400 border',
-                              'pointer-events-none', // let the outer tile receive pointer events
-                            ].join(' ')}
+                            className="rounded border border-dashed border-gray-400 bg-white pointer-events-none"
+                            style={{ width: cellSize - 8, height: cellSize - 8 }}
+                          />
+                        )}
+
+                        {/* 2) Origin hidden when no valid target (only ghost shows) */}
+                        {isCell && hideOriginOnlyGhost && null}
+
+                        {/* 3) Everything else: normal tile (includes live preview label at origin) */}
+                        {isCell && !isDropSpot && !hideOriginOnlyGhost && (
+                          <div
+                            className={`flex items-center justify-center rounded ${
+                              label != null ? 'bg-black text-white' : 'bg-white text-gray-400 border'
+                            } pointer-events-none`}
                             style={{ width: cellSize - 8, height: cellSize - 8, fontSize: 12 }}
                           >
                             <span
@@ -274,18 +387,45 @@ export default function StepMappingVisual({
                 )}
               </div>
             </div>
+
+            {/* Ghost tile (semi-transparent), follows cursor; pointer-events: none */}
+            {dragging && dragOriginSlot && ghost && (
+              <div
+                className="pointer-events-none absolute z-10 will-change-transform"
+                style={{
+                  left: ghost.x,
+                  top: ghost.y,
+                  transform: `translate(-50%, -50%) rotate(${viewRotationDeg}deg) scale(${scale})`,
+                  transformOrigin: 'center',
+                  opacity: 0.75,
+                }}
+              >
+                <div
+                  className="flex items-center justify-center"
+                  style={{ width: cellSize, height: cellSize }}
+                >
+                  <div
+                    className="flex items-center justify-center rounded bg-black text-white shadow-md"
+                    style={{ width: cellSize - 8, height: cellSize - 8, fontSize: 12 }}
+                  >
+                    <span
+                      className="inline-block"
+                      style={{ transform: `rotate(${-viewRotationDeg}deg)` }}
+                    >
+                      {dragOriginSlot.label}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
         <div className="text-[11px] text-gray-500 mt-2">
-          Drag a numbered slot over another to preview; release to commit the swap.
+          Pick up a slot and drag it; both the origin and hovered cell appear blank. Release to commit the swap.
         </div>
 
-        {errorMsg && (
-          <div className="mt-2 text-xs text-red-600">
-            Error swapping: {errorMsg}
-          </div>
-        )}
+        {err && <div className="mt-2 text-xs text-red-600">Error swapping: {err}</div>}
       </section>
     </div>
   );
