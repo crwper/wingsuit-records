@@ -32,9 +32,9 @@ export default async function SequenceEditorPage({
 
   // formations that match roster size (RPC)
   const { data: formationsData, error: formationsErr } = await supabase
-    .rpc('formations_matching_roster', { p_sequence_id: id })
-    .returns<FormationLite[]>();
-  const formations: FormationLite[] = formationsData ?? [];
+    .rpc('formations_matching_roster', { p_sequence_id: id });
+
+  const formations = (Array.isArray(formationsData) ? formationsData : []) as FormationLite[];
 
   const formationMap = new Map<string, string>();
   for (const f of formations) formationMap.set(f.id, f.title);
