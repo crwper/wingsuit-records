@@ -83,3 +83,25 @@ export async function computeDifferencesAction(formData: FormData) {
   const { revalidatePath } = await import('next/cache');
   revalidatePath(`/sequences/${sequenceId}`);
 }
+
+export async function deleteStepAction(formData: FormData) {
+  const supabase = await createClient();
+  const sequenceId = String(formData.get('sequenceId') ?? '');
+  const stepId     = String(formData.get('stepId') ?? '');
+  if (!sequenceId || !stepId) throw new Error('Missing ids');
+
+  const { error } = await supabase.rpc('delete_step_and_compact', {
+    p_sequence_id: sequenceId,
+    p_step_id: stepId,
+  });
+  if (error) throw new Error(error.message);
+
+  // Recompute differences so HUD stays accurate after reindex
+  await supabase.rpc('compute_adjacency_for_sequence', {
+    p_sequence_id: sequenceId,
+    p_wrap: true,
+  });
+
+  const { revalidatePath } = await import('next/cache');
+  revalidatePath(`/sequences/${sequenceId}`);
+}

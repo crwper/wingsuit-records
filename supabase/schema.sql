@@ -362,6 +362,56 @@ CREATE OR REPLACE FUNCTION "public"."db_now"() RETURNS timestamp with time zone
 ALTER FUNCTION "public"."db_now"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."delete_step_and_compact"("p_sequence_id" "uuid", "p_step_id" "uuid") RETURNS "void"
+    LANGUAGE "plpgsql"
+    SET "search_path" TO 'public'
+    AS $$
+declare
+  v_owner uuid;
+  v_seq_of_step uuid;
+begin
+  -- Auth: owner-only
+  select owner_user_id into v_owner from public.sequences where id = p_sequence_id;
+  if v_owner is null then
+    raise exception 'sequence not found';
+  end if;
+  if v_owner <> auth.uid() then
+    raise exception 'not authorized (owner)';
+  end if;
+
+  -- Validate the step belongs to the sequence
+  select sequence_id into v_seq_of_step
+  from public.sequence_steps
+  where id = p_step_id;
+
+  if v_seq_of_step is null then
+    raise exception 'step not found';
+  end if;
+  if v_seq_of_step <> p_sequence_id then
+    raise exception 'step does not belong to this sequence';
+  end if;
+
+  -- Delete the step (cascades remove step_assignments; adjacency_checks rows
+  -- also cascade via FKs on step_a_id / step_b_id)
+  delete from public.sequence_steps where id = p_step_id;
+
+  -- Compact remaining step_index to 1..N in order
+  with ordered as (
+    select id, row_number() over (order by step_index asc) as new_idx
+    from public.sequence_steps
+    where sequence_id = p_sequence_id
+  )
+  update public.sequence_steps st
+  set step_index = o.new_idx
+  from ordered o
+  where st.id = o.id;
+end
+$$;
+
+
+ALTER FUNCTION "public"."delete_step_and_compact"("p_sequence_id" "uuid", "p_step_id" "uuid") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."formations_matching_roster"("p_sequence_id" "uuid") RETURNS TABLE("id" "uuid", "title" "text", "cell_count" integer)
     LANGUAGE "sql"
     SET "search_path" TO 'public'
@@ -1113,6 +1163,12 @@ GRANT ALL ON FUNCTION "public"."create_sequence"("p_title" "text") TO "service_r
 GRANT ALL ON FUNCTION "public"."db_now"() TO "anon";
 GRANT ALL ON FUNCTION "public"."db_now"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."db_now"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."delete_step_and_compact"("p_sequence_id" "uuid", "p_step_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."delete_step_and_compact"("p_sequence_id" "uuid", "p_step_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."delete_step_and_compact"("p_sequence_id" "uuid", "p_step_id" "uuid") TO "service_role";
 
 
 
