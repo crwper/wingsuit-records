@@ -190,7 +190,7 @@ declare
   v_diff  boolean;
   v_seq   uuid;
 begin
-  -- Ownership and same-sequence check
+  -- Ownership + same-sequence guard
   select st.sequence_id, s.owner_user_id into v_seq_a, v_owner
   from public.sequence_steps st
   join public.sequences s on s.id = st.sequence_id
@@ -211,10 +211,12 @@ begin
   end if;
   v_seq := v_seq_a;
 
-  -- Compute points and best overlap
+  -- Points WITH FLYER LABELS
   with
   points_a as (
-    select (fc.col + st.offset_tx) as x, (fc.row + st.offset_ty) as y
+    select sa.flyer_id,
+           (fc.col + st.offset_tx) as x,
+           (fc.row + st.offset_ty) as y
     from public.sequence_steps st
     join public.step_assignments sa on sa.sequence_step_id = st.id
     join public.formation_cells fc
@@ -223,7 +225,9 @@ begin
     where st.id = p_step_a_id
   ),
   points_b as (
-    select (fc.col + st.offset_tx) as x, (fc.row + st.offset_ty) as y
+    select sa.flyer_id,
+           (fc.col + st.offset_tx) as x,
+           (fc.row + st.offset_ty) as y
     from public.sequence_steps st
     join public.step_assignments sa on sa.sequence_step_id = st.id
     join public.formation_cells fc
@@ -235,25 +239,28 @@ begin
     select (select count(*) from points_a) as n_a,
            (select count(*) from points_b) as n_b
   ),
+  -- Rotate A but keep flyer_id so we compare same flyer across steps
   rot_a as (
-    select 0   as rot, x,  y  from points_a
+    select flyer_id, 0   as rot,  x  as rx,  y  as ry from points_a
     union all
-    select 90  as rot, -y, x  from points_a
+    select flyer_id, 90  as rot, -y  as rx,  x  as ry from points_a
     union all
-    select 180 as rot, -x, -y from points_a
+    select flyer_id, 180 as rot, -x  as rx, -y  as ry from points_a
     union all
-    select 270 as rot,  y, -x from points_a
+    select flyer_id, 270 as rot,  y  as rx, -x  as ry from points_a
   ),
-  diffs as (
+  -- For each flyer, the translation that would align their A→B positions under a given rotation
+  translations as (
     select ra.rot,
-           (pb.x - ra.x) as dx,
-           (pb.y - ra.y) as dy
+           (pb.x - ra.rx) as dx,
+           (pb.y - ra.ry) as dy
     from rot_a ra
-    cross join points_b pb
+    join points_b pb on pb.flyer_id = ra.flyer_id
   ),
+  -- Count how many flyers agree on the SAME (rot, dx, dy)
   grouped as (
     select rot, dx, dy, count(*) as c
-    from diffs
+    from translations
     group by rot, dx, dy
   ),
   best as (
@@ -360,6 +367,44 @@ CREATE OR REPLACE FUNCTION "public"."db_now"() RETURNS timestamp with time zone
 
 
 ALTER FUNCTION "public"."db_now"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."debug_adjacency_matches"("p_step_a_id" "uuid", "p_step_b_id" "uuid", "p_rotation_deg" integer, "p_tx" integer, "p_ty" integer) RETURNS TABLE("flyer_id" "text", "a_x" integer, "a_y" integer, "b_x" integer, "b_y" integer, "matches" boolean)
+    LANGUAGE "sql"
+    SET "search_path" TO 'public'
+    AS $$
+  with
+  pa as (
+    select sa.flyer_id, (fc.col + st.offset_tx) as x, (fc.row + st.offset_ty) as y
+    from public.sequence_steps st
+    join public.step_assignments sa on sa.sequence_step_id = st.id
+    join public.formation_cells fc on fc.formation_id = st.formation_id and fc.cell_index = sa.formation_cell_index
+    where st.id = p_step_a_id
+  ),
+  pb as (
+    select sa.flyer_id, (fc.col + st.offset_tx) as x, (fc.row + st.offset_ty) as y
+    from public.sequence_steps st
+    join public.step_assignments sa on sa.sequence_step_id = st.id
+    join public.formation_cells fc on fc.formation_id = st.formation_id and fc.cell_index = sa.formation_cell_index
+    where st.id = p_step_b_id
+  ),
+  ra as (
+    -- rotate A by p_rotation_deg
+    select flyer_id,
+           case p_rotation_deg when 0 then x when 90 then -y when 180 then -x else y end as rx,
+           case p_rotation_deg when 0 then y when 90 then  x when 180 then -y else -x end as ry
+    from pa
+  )
+  select ra.flyer_id,
+         (ra.rx + p_tx) as a_x, (ra.ry + p_ty) as a_y,
+         pb.x as b_x, pb.y as b_y,
+         ((ra.rx + p_tx) = pb.x and (ra.ry + p_ty) = pb.y) as matches
+  from ra join pb using (flyer_id)
+  order by flyer_id;
+$$;
+
+
+ALTER FUNCTION "public"."debug_adjacency_matches"("p_step_a_id" "uuid", "p_step_b_id" "uuid", "p_rotation_deg" integer, "p_tx" integer, "p_ty" integer) OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."delete_step_and_compact"("p_sequence_id" "uuid", "p_step_id" "uuid") RETURNS "void"
@@ -559,6 +604,38 @@ $$;
 ALTER FUNCTION "public"."save_sequence_roster"("p_sequence_id" "uuid", "p_roster" "jsonb") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."set_formation_view_rotation"("p_formation_id" "uuid", "p_deg" integer) RETURNS "void"
+    LANGUAGE "plpgsql"
+    SET "search_path" TO 'public'
+    AS $$
+declare
+  v_owner uuid;
+begin
+  select owner_user_id into v_owner
+  from public.formations
+  where id = p_formation_id;
+
+  if v_owner is null then
+    raise exception 'formation not found';
+  end if;
+  if v_owner <> auth.uid() then
+    raise exception 'not authorized (owner)';
+  end if;
+
+  if p_deg not in (0,45,90,135,180,225,270,315) then
+    raise exception 'rotation must be one of 0,45,90,135,180,225,270,315 degrees';
+  end if;
+
+  update public.formations
+  set view_rotation_deg = p_deg, updated_at = now()
+  where id = p_formation_id;
+end
+$$;
+
+
+ALTER FUNCTION "public"."set_formation_view_rotation"("p_formation_id" "uuid", "p_deg" integer) OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."swap_step_flyers"("p_sequence_step_id" "uuid", "p_flyer_a" "text", "p_flyer_b" "text") RETURNS "void"
     LANGUAGE "plpgsql"
     SET "search_path" TO 'public'
@@ -693,7 +770,9 @@ CREATE TABLE IF NOT EXISTS "public"."formations" (
     "notes" "text",
     "version" integer DEFAULT 1 NOT NULL,
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "view_rotation_deg" integer DEFAULT 0 NOT NULL,
+    CONSTRAINT "formations_view_rotation_deg_check" CHECK (("view_rotation_deg" = ANY (ARRAY[0, 45, 90, 135, 180, 225, 270, 315])))
 );
 
 
@@ -1166,6 +1245,12 @@ GRANT ALL ON FUNCTION "public"."db_now"() TO "service_role";
 
 
 
+GRANT ALL ON FUNCTION "public"."debug_adjacency_matches"("p_step_a_id" "uuid", "p_step_b_id" "uuid", "p_rotation_deg" integer, "p_tx" integer, "p_ty" integer) TO "anon";
+GRANT ALL ON FUNCTION "public"."debug_adjacency_matches"("p_step_a_id" "uuid", "p_step_b_id" "uuid", "p_rotation_deg" integer, "p_tx" integer, "p_ty" integer) TO "authenticated";
+GRANT ALL ON FUNCTION "public"."debug_adjacency_matches"("p_step_a_id" "uuid", "p_step_b_id" "uuid", "p_rotation_deg" integer, "p_tx" integer, "p_ty" integer) TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."delete_step_and_compact"("p_sequence_id" "uuid", "p_step_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."delete_step_and_compact"("p_sequence_id" "uuid", "p_step_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."delete_step_and_compact"("p_sequence_id" "uuid", "p_step_id" "uuid") TO "service_role";
@@ -1187,6 +1272,12 @@ GRANT ALL ON FUNCTION "public"."save_formation_cells"("p_formation_id" "uuid", "
 GRANT ALL ON FUNCTION "public"."save_sequence_roster"("p_sequence_id" "uuid", "p_roster" "jsonb") TO "anon";
 GRANT ALL ON FUNCTION "public"."save_sequence_roster"("p_sequence_id" "uuid", "p_roster" "jsonb") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."save_sequence_roster"("p_sequence_id" "uuid", "p_roster" "jsonb") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."set_formation_view_rotation"("p_formation_id" "uuid", "p_deg" integer) TO "anon";
+GRANT ALL ON FUNCTION "public"."set_formation_view_rotation"("p_formation_id" "uuid", "p_deg" integer) TO "authenticated";
+GRANT ALL ON FUNCTION "public"."set_formation_view_rotation"("p_formation_id" "uuid", "p_deg" integer) TO "service_role";
 
 
 
