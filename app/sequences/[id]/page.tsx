@@ -4,6 +4,10 @@ import Link from 'next/link';
 import { addStepAction, saveRosterAction, computeDifferencesAction } from './actions';
 import DeleteStepWithConfirm from '@/components/DeleteStepWithConfirm';
 
+type FormationLite = { id: string; title: string };
+type StepLite = { id: string; step_index: number; label: string | null; formation_id: string };
+type RosterRow = { flyer_id: string; roster_index: number };
+
 export default async function SequenceEditorPage({
   params,
 }: { params: Promise<{ id: string }> }) {
@@ -24,12 +28,13 @@ export default async function SequenceEditorPage({
     .select('flyer_id, roster_index')
     .eq('sequence_id', id)
     .order('roster_index', { ascending: true });
-  const roster = rosterData ?? [];
+  const roster: RosterRow[] = rosterData ?? [];
 
-  // formations owned by me (for Add Step dropdown)
+  // formations that match roster size (RPC)
   const { data: formationsData, error: formationsErr } = await supabase
-    .rpc('formations_matching_roster', { p_sequence_id: id });
-  const formations = formationsData ?? [];
+    .rpc('formations_matching_roster', { p_sequence_id: id })
+    .returns<FormationLite[]>();
+  const formations: FormationLite[] = formationsData ?? [];
 
   const formationMap = new Map<string, string>();
   for (const f of formations) formationMap.set(f.id, f.title);
@@ -40,7 +45,7 @@ export default async function SequenceEditorPage({
     .select('id, step_index, label, formation_id')
     .eq('sequence_id', id)
     .order('step_index', { ascending: true });
-  const steps = stepsData ?? [];
+  const steps: StepLite[] = stepsData ?? [];
 
   const stepIds = steps.map((s) => s.id);
 
@@ -148,7 +153,7 @@ export default async function SequenceEditorPage({
           <div>
             <label className="block text-xs text-gray-600 mb-1">Formation</label>
             <select name="formationId" className="rounded border p-2 text-sm">
-              {formations.map((f: { id: string; title: string }) => (
+              {formations.map(f => (
                 <option key={f.id} value={f.id}>{f.title}</option>
               ))}
             </select>
