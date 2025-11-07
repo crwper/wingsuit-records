@@ -75,26 +75,17 @@ export default async function StepMappingPage({
         </div>
       </header>
 
-      {/* Visual mapping */}
-      <section className="rounded border bg-white p-4 space-y-3">
-        <div className="font-semibold">Current mapping</div>
-        <StepMappingVisual
-          cells={cells as { cell_index: number; col: number; row: number }[]}
-          roster={(roster as { flyer_id: string; roster_index: number }[]).sort((a, b) => a.roster_index - b.roster_index)}
-          assignments={assignments as { flyer_id: string; formation_cell_index: number }[]}
-          cellSize={32}
-          viewRotationDeg={viewRotationDeg}                 // ← pass rotation
-        />
-      </section>
-
-      {/* Swap control */}
-      <section className="rounded border bg-white p-4 space-y-3">
-        <div className="font-semibold">Swap two flyers</div>
-        <SwapForm sequenceId={sequenceId} stepId={stepId} roster={roster.map(r => r.flyer_id)} />
-        <p className="text-xs text-gray-600">
-          Swapping preserves validity and is an easy way to explore different mappings.
-        </p>
-      </section>
+      <StepMappingVisual
+        sequenceId={sequenceId}
+        stepId={stepId}
+        cells={cells as { cell_index: number; col: number; row: number }[]}
+        roster={(roster as { flyer_id: string; roster_index: number }[]).sort(
+          (a, b) => a.roster_index - b.roster_index
+        )}
+        assignments={assignments as { flyer_id: string; formation_cell_index: number }[]}
+        cellSize={32}
+        viewRotationDeg={viewRotationDeg}
+      />
     </main>
   );
 }
