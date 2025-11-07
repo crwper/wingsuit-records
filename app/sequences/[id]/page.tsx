@@ -27,9 +27,7 @@ export default async function SequenceEditorPage({
 
   // formations owned by me (for Add Step dropdown)
   const { data: formationsData, error: formationsErr } = await supabase
-    .from('formations')
-    .select('id, title')
-    .order('created_at', { ascending: false });
+    .rpc('formations_matching_roster', { p_sequence_id: id });
   const formations = formationsData ?? [];
 
   const formationMap = new Map<string, string>();
@@ -160,7 +158,7 @@ export default async function SequenceEditorPage({
           </div>
           <button className="rounded bg-black px-3 py-2 text-white text-sm">Add step</button>
           <p className="text-xs text-gray-600">
-            Formation must have the same number of cells as the roster. We’ll auto‑assign flyers.
+            Only formations with the same number of cells as the roster are shown.
           </p>
         </form>
       </section>

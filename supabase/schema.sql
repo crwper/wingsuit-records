@@ -362,6 +362,37 @@ CREATE OR REPLACE FUNCTION "public"."db_now"() RETURNS timestamp with time zone
 ALTER FUNCTION "public"."db_now"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."formations_matching_roster"("p_sequence_id" "uuid") RETURNS TABLE("id" "uuid", "title" "text", "cell_count" integer)
+    LANGUAGE "sql"
+    SET "search_path" TO 'public'
+    AS $$
+  with my_seq as (
+    select id, owner_user_id
+    from public.sequences
+    where id = p_sequence_id
+  ),
+  roster_size as (
+    select count(*)::int as n
+    from public.sequence_roster
+    where sequence_id = p_sequence_id
+  ),
+  form_counts as (
+    select f.id, f.title, f.created_at, count(fc.*)::int as cell_count
+    from public.formations f
+    join public.formation_cells fc on fc.formation_id = f.id
+    join my_seq s on s.owner_user_id = f.owner_user_id   -- same owner
+    group by f.id, f.title, f.created_at
+  )
+  select fc.id, fc.title, fc.cell_count
+  from form_counts fc, roster_size r
+  where fc.cell_count = r.n
+  order by fc.created_at desc;
+$$;
+
+
+ALTER FUNCTION "public"."formations_matching_roster"("p_sequence_id" "uuid") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."save_formation_cells"("p_formation_id" "uuid", "p_cells" "jsonb") RETURNS "void"
     LANGUAGE "plpgsql"
     SET "search_path" TO 'public'
@@ -1082,6 +1113,12 @@ GRANT ALL ON FUNCTION "public"."create_sequence"("p_title" "text") TO "service_r
 GRANT ALL ON FUNCTION "public"."db_now"() TO "anon";
 GRANT ALL ON FUNCTION "public"."db_now"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."db_now"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."formations_matching_roster"("p_sequence_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."formations_matching_roster"("p_sequence_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."formations_matching_roster"("p_sequence_id" "uuid") TO "service_role";
 
 
 
