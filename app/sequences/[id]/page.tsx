@@ -12,7 +12,7 @@ export default async function SequenceEditorPage({
   // sequence
   const { data: sequence, error: seqErr } = await supabase
     .from('sequences')
-    .select('id, title, base_flyer_id, created_at')
+    .select('id, title, created_at')
     .eq('id', id)
     .single();
   if (seqErr || !sequence) return notFound();
@@ -123,22 +123,21 @@ export default async function SequenceEditorPage({
         <div className="font-semibold">Roster</div>
         <form action={saveRosterAction} className="space-y-3">
           <input type="hidden" name="sequenceId" value={sequence.id} />
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs text-gray-600 mb-1">Flyer IDs (one per line or comma-separated)</label>
-              <textarea name="roster" rows={6} className="w-full rounded border p-2 text-sm"
-                defaultValue={rosterStr} placeholder={'F1\nF2\nF3'} />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-600 mb-1">Base flyer ID</label>
-              <input name="base" className="w-full rounded border p-2 text-sm"
-                defaultValue={sequence.base_flyer_id ?? ''} placeholder="F1" />
-              <p className="text-xs text-gray-600 mt-2">
-                The roster must contain the base flyer exactly once. Order on the left is saved.
-              </p>
-            </div>
+          <div>
+            <label className="block text-xs text-gray-600 mb-1">
+              Flyer IDs (one per line or comma-separated)
+            </label>
+            <textarea
+              name="roster"
+              rows={6}
+              className="w-full rounded border p-2 text-sm"
+              defaultValue={roster.map(r => r.flyer_id).join('\n')}
+              placeholder={'F1\nF2\nF3'}
+            />
           </div>
-          <button className="rounded bg-black px-3 py-2 text-white text-sm">Save roster</button>
+          <button className="rounded bg-black px-3 py-2 text-white text-sm">
+            Save roster
+          </button>
         </form>
       </section>
 

@@ -15,16 +15,18 @@ function parseRoster(text: string): string[] {
 export async function saveRosterAction(formData: FormData) {
   const supabase = await createClient();
   const sequenceId = String(formData.get('sequenceId') ?? '');
-  const base = String(formData.get('base') ?? '').trim();
   const rosterText = String(formData.get('roster') ?? '');
-
   if (!sequenceId) throw new Error('Missing sequence id');
 
-  const roster = parseRoster(rosterText);
+  // Same parser as before
+  const raw = rosterText.split(/[\n,]/g).map(s => s.trim()).filter(Boolean);
+  const seen = new Set<string>();
+  const roster: string[] = [];
+  for (const f of raw) if (!seen.has(f)) { seen.add(f); roster.push(f); }
+
   const { error } = await supabase.rpc('save_sequence_roster', {
     p_sequence_id: sequenceId,
     p_roster: roster,
-    p_base_flyer_id: base,
   });
   if (error) throw new Error(error.message);
 

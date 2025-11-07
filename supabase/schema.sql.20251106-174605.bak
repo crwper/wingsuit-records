@@ -332,7 +332,7 @@ end$$;
 ALTER FUNCTION "public"."create_formation"("p_title" "text", "p_notes" "text") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."create_sequence"("p_title" "text") RETURNS "uuid"
+CREATE OR REPLACE FUNCTION "public"."create_sequence"("p_title" "text", "p_base_flyer_id" "text" DEFAULT 'F1'::"text") RETURNS "uuid"
     LANGUAGE "plpgsql"
     SET "search_path" TO 'public'
     AS $$
@@ -342,16 +342,16 @@ begin
     raise exception 'title is required';
   end if;
 
-  insert into public.sequences (title, owner_user_id)
-  values (trim(p_title), auth.uid())
+  insert into public.sequences (title, owner_user_id, base_flyer_id)
+  values (trim(p_title), auth.uid(), coalesce(nullif(trim(p_base_flyer_id), ''), 'F1'))
   returning id into v_id;
 
+  -- Owner membership is added by trigger
   return v_id;
-end
-$$;
+end$$;
 
 
-ALTER FUNCTION "public"."create_sequence"("p_title" "text") OWNER TO "postgres";
+ALTER FUNCTION "public"."create_sequence"("p_title" "text", "p_base_flyer_id" "text") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."db_now"() RETURNS timestamp with time zone
@@ -436,19 +436,26 @@ $$;
 ALTER FUNCTION "public"."save_formation_cells"("p_formation_id" "uuid", "p_cells" "jsonb") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."save_sequence_roster"("p_sequence_id" "uuid", "p_roster" "jsonb") RETURNS "void"
+CREATE OR REPLACE FUNCTION "public"."save_sequence_roster"("p_sequence_id" "uuid", "p_roster" "jsonb", "p_base_flyer_id" "text") RETURNS "void"
     LANGUAGE "plpgsql"
     SET "search_path" TO 'public'
     AS $$
 declare
-  v_owner uuid;
-  v_count int;
+  v_owner     uuid;
+  v_count     int;
+  v_has_base  boolean;
 begin
-  select owner_user_id into v_owner from public.sequences where id = p_sequence_id;
-  if v_owner is null then raise exception 'sequence not found'; end if;
-  if v_owner <> auth.uid() then raise exception 'not authorized (owner)'; end if;
+  select owner_user_id into v_owner
+  from public.sequences where id = p_sequence_id;
 
-  -- Dedup and preserve first-seen order
+  if v_owner is null then
+    raise exception 'sequence not found';
+  end if;
+  if v_owner <> auth.uid() then
+    raise exception 'not authorized (owner)';
+  end if;
+
+  -- Compute count and "base present?" inside ONE CTE scope
   with raw as (
     select x as flyer_id, ord
     from jsonb_array_elements_text(p_roster) with ordinality as t(x, ord)
@@ -458,24 +465,43 @@ begin
     from raw
     where trim(flyer_id) <> ''
     group by trim(flyer_id)
-  ),
-  cnt as (select count(*)::int as c from cleaned)
-  select c into v_count from cnt;
+  )
+  select
+    count(*)::int as c,
+    bool_or(flyer_id = trim(p_base_flyer_id)) as has_base
+  into v_count, v_has_base
+  from cleaned;
 
   if v_count = 0 then
     raise exception 'roster cannot be empty';
   end if;
+  if coalesce(trim(p_base_flyer_id),'') = '' then
+    raise exception 'base_flyer_id required';
+  end if;
+  if not v_has_base then
+    raise exception 'base_flyer_id must be in roster';
+  end if;
 
+  -- Replace roster (recompute cleaned in-line for the insert)
   delete from public.sequence_roster where sequence_id = p_sequence_id;
 
   insert into public.sequence_roster (sequence_id, flyer_id, roster_index)
   select p_sequence_id, flyer_id, row_number() over (order by ord) - 1
-  from cleaned;
+  from (
+    select min(ord) as ord, trim(flyer_id) as flyer_id
+    from jsonb_array_elements_text(p_roster) with ordinality as t(flyer_id, ord)
+    where trim(flyer_id) <> ''
+    group by trim(flyer_id)
+  ) q;
+
+  update public.sequences
+  set base_flyer_id = trim(p_base_flyer_id)
+  where id = p_sequence_id;
 end
 $$;
 
 
-ALTER FUNCTION "public"."save_sequence_roster"("p_sequence_id" "uuid", "p_roster" "jsonb") OWNER TO "postgres";
+ALTER FUNCTION "public"."save_sequence_roster"("p_sequence_id" "uuid", "p_roster" "jsonb", "p_base_flyer_id" "text") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."swap_step_flyers"("p_sequence_step_id" "uuid", "p_flyer_a" "text", "p_flyer_b" "text") RETURNS "void"
@@ -663,6 +689,7 @@ CREATE TABLE IF NOT EXISTS "public"."sequences" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "title" "text" NOT NULL,
     "owner_user_id" "uuid" NOT NULL,
+    "base_flyer_id" "text" DEFAULT 'F1'::"text" NOT NULL,
     "status" "text" DEFAULT 'planning'::"text" NOT NULL,
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
@@ -1073,9 +1100,9 @@ GRANT ALL ON FUNCTION "public"."create_formation"("p_title" "text", "p_notes" "t
 
 
 
-GRANT ALL ON FUNCTION "public"."create_sequence"("p_title" "text") TO "anon";
-GRANT ALL ON FUNCTION "public"."create_sequence"("p_title" "text") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."create_sequence"("p_title" "text") TO "service_role";
+GRANT ALL ON FUNCTION "public"."create_sequence"("p_title" "text", "p_base_flyer_id" "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."create_sequence"("p_title" "text", "p_base_flyer_id" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."create_sequence"("p_title" "text", "p_base_flyer_id" "text") TO "service_role";
 
 
 
@@ -1091,9 +1118,9 @@ GRANT ALL ON FUNCTION "public"."save_formation_cells"("p_formation_id" "uuid", "
 
 
 
-GRANT ALL ON FUNCTION "public"."save_sequence_roster"("p_sequence_id" "uuid", "p_roster" "jsonb") TO "anon";
-GRANT ALL ON FUNCTION "public"."save_sequence_roster"("p_sequence_id" "uuid", "p_roster" "jsonb") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."save_sequence_roster"("p_sequence_id" "uuid", "p_roster" "jsonb") TO "service_role";
+GRANT ALL ON FUNCTION "public"."save_sequence_roster"("p_sequence_id" "uuid", "p_roster" "jsonb", "p_base_flyer_id" "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."save_sequence_roster"("p_sequence_id" "uuid", "p_roster" "jsonb", "p_base_flyer_id" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."save_sequence_roster"("p_sequence_id" "uuid", "p_roster" "jsonb", "p_base_flyer_id" "text") TO "service_role";
 
 
 
