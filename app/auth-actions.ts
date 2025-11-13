@@ -13,7 +13,10 @@ export async function signupAction(formData: FormData) {
   if (password.length < 6) throw new Error('Password must be at least 6 characters');
 
   const { error } = await supabase.auth.signUp({ email, password });
-  if (error) throw new Error(error.message);
+  if (error) {
+    const qs = new URLSearchParams({ error: error.message });
+    redirect(`/signup?${qs.toString()}`);
+  }
 
   // If email confirmation is on, the session will be null until confirmed.
   redirect('/login?check-email=1');
@@ -28,7 +31,11 @@ export async function loginAction(formData: FormData) {
   const next = nextRaw.startsWith('/') ? nextRaw : '/';
 
   const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) throw new Error(error.message);
+  if (error) {
+    // Redirect back to /login so the page can show the red <Alert>
+    const qs = new URLSearchParams({ error: error.message });
+    redirect(`/login?${qs.toString()}`);
+  }
 
   redirect(next);
 }

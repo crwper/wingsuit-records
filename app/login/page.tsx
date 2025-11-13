@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { loginAction } from '../auth-actions';
+import Alert from '@/components/primitives/Alert';
 
 export default async function LoginPage({
   searchParams,
@@ -14,8 +15,10 @@ export default async function LoginPage({
   return (
     <main className="mx-auto max-w-sm p-6 space-y-4">
       <h1 className="text-xl font-bold">Log in</h1>
-      {checkEmail && <p className="text-sm text-green-700">Check your email to confirm your account, then log in.</p>}
-      {err && <p className="text-sm text-red-600">Error: {err}</p>}
+      {checkEmail && (
+        <Alert tone="success">Check your email to confirm your account, then log in.</Alert>
+      )}
+      {err && <Alert tone="error"><span className="font-medium">Error:</span> {err}</Alert>}
       <form action={loginAction} className="space-y-3">
         <input type="hidden" name="next" value={next} />
         <div className="flex flex-col">

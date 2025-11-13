@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { signupAction } from '../auth-actions';
+import Alert from '@/components/primitives/Alert';
 
 export default async function SignupPage({
   searchParams,
@@ -11,7 +12,7 @@ export default async function SignupPage({
   return (
     <main className="mx-auto max-w-sm p-6 space-y-4">
       <h1 className="text-xl font-bold">Create account</h1>
-      {err && <p className="text-sm text-red-600">Error: {err}</p>}
+      {err && <Alert tone="error"><span className="font-medium">Error:</span> {err}</Alert>}
       <form action={signupAction} className="space-y-3">
         <div className="flex flex-col">
           <label className="text-xs text-gray-600">Email</label>
