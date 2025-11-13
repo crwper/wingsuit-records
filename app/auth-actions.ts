@@ -37,6 +37,9 @@ export async function loginAction(formData: FormData) {
     redirect(`/login?${qs.toString()}`);
   }
 
+  // 👇 ensures cookies are attached to THIS response before redirect
+  await supabase.auth.getUser();
+
   redirect(next);
 }
 
@@ -44,5 +47,9 @@ export async function logoutAction() {
   const supabase = await createClient();
   const { error } = await supabase.auth.signOut();
   if (error) throw new Error(error.message);
+
+  // 👇 ensures cookies are attached to THIS response before redirect
+  await supabase.auth.getUser();
+
   redirect('/login');
 }
