@@ -60,7 +60,7 @@ export default async function StepMappingPage({
   for (const a of assignments) cellIndexByFlyer.set(a.flyer_id, a.formation_cell_index);
 
   return (
-    <main className="mx-auto max-w-3xl p-6 space-y-6 bg-slate-50">
+    <main className="mx-auto max-w-2xl p-6 space-y-6 bg-slate-50">
       <header className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">

@@ -24,7 +24,7 @@ export default async function FormationEditorPage({ params }: { params: Promise<
     .order('col', { ascending: true });
 
   return (
-    <main className="mx-auto max-w-3xl p-6 space-y-6 bg-slate-50">
+    <main className="mx-auto max-w-2xl p-6 space-y-6 bg-slate-50">
       <header className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">{formation.title}</h1>

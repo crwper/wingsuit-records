@@ -102,7 +102,7 @@ export default async function SequenceEditorPage({
   const rosterStr = roster.map((r) => r.flyer_id).join('\n');
 
   return (
-    <main className="mx-auto max-w-3xl p-6 space-y-8 bg-slate-50">
+    <main className="mx-auto max-w-2xl p-6 space-y-8 bg-slate-50">
       <header className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">{sequence.title}</h1>
