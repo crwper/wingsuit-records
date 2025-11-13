@@ -2,10 +2,16 @@ import { createClient } from '@/lib/supabase/server';
 import { createFormationAction } from './actions';
 import Link from 'next/link';
 import DeleteWithConfirm from '@/components/DeleteWithConfirm';
+import { redirect } from 'next/navigation';
 
 export default async function FormationsPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+
+  // If not signed in, send to login first; come back here after
+  if (!user) {
+    redirect(`/login?next=${encodeURIComponent('/formations')}`);
+  }
 
   // List only your formations (RLS enforces ownership)
   const { data: formations, error } = await supabase

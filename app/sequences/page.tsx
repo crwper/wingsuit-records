@@ -1,9 +1,16 @@
 import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import { createSequenceAction } from './actions';
+import { redirect } from 'next/navigation';
 
 export default async function SequencesPage() {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  // If not signed in, send to login first; come back here after
+  if (!user) {
+    redirect(`/login?next=${encodeURIComponent('/sequences')}`);
+  }
 
   const { data: sequences, error } = await supabase
     .from('sequences')
