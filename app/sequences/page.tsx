@@ -21,7 +21,6 @@ export default async function SequencesPage() {
     <main className="mx-auto max-w-2xl p-6 space-y-6 bg-slate-50">
       <header className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Sequences</h1>
-        <Link className="text-sm underline" href="/">Home</Link>
       </header>
 
       <form action={createSequenceAction} className="rounded border bg-white p-3 space-y-3">

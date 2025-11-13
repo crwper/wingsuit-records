@@ -23,7 +23,6 @@ export default async function FormationsPage() {
     <main className="mx-auto max-w-2xl p-6 space-y-6 bg-slate-50">
       <header className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Formations</h1>
-        <a href="/" className="text-sm underline">Home</a>
       </header>
 
       {/* Create new formation */}

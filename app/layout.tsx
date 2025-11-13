@@ -5,6 +5,7 @@ import Link from 'next/link';
 import "./globals.css";
 import { createClient } from '@/lib/supabase/server';
 import { logoutAction } from './auth-actions';
+import AppNav from '@/components/AppNav';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -40,7 +41,7 @@ export default async function RootLayout({
       <body>
         <header className="border-b bg-white">
           <div className="mx-auto max-w-2xl p-3 flex items-center justify-between">
-            <Link href="/" className="font-semibold">Wingsuit Records</Link>
+            <Link href="/formations" className="font-semibold">Wingsuit Records</Link>
             <div className="text-sm">
               {user ? (
                 <form action={logoutAction} className="flex items-center gap-3">
@@ -55,6 +56,9 @@ export default async function RootLayout({
               )}
             </div>
           </div>
+
+          {/* App-level navigation (authenticated only) */}
+          {user ? <AppNav /> : null}
         </header>
 
         <main>{children}</main>
