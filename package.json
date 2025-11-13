@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "postbuild": "mkdir -p .next/standalone/.next && rsync -a --delete .next/static/ .next/standalone/.next/static/ && rsync -a --delete public/ .next/standalone/public/"
   },
   "dependencies": {
     "@supabase/ssr": "^0.7.0",
