@@ -357,7 +357,7 @@ export default function StepMappingVisual({
                         {/* 1) Hovered target: dashed blank drop spot */}
                         {isCell && isDropSpot && (
                           <div
-                            className="rounded border border-dashed border-grid-drop-target bg-grid-drop-target pointer-events-none"
+                            className="rounded border border-dashed border-grid-drop-target-b bg-grid-drop-target pointer-events-none"
                             style={{ width: cellSize - 8, height: cellSize - 8 }}
                           />
                         )}

@@ -157,7 +157,7 @@ export default function FormationGridEditor({
           }}
         >
           <div
-            className="grid gap-px bg-formation-gutter p-px rounded"
+            className="grid gap-px bg-grid-gutter p-px rounded"
             style={{ gridTemplateColumns: `repeat(${cols.length}, ${cellPx}px)` }}
           >
             {rows.map((row) =>

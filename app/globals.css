@@ -72,6 +72,14 @@
   /* Formation Pixel Editor */
   --my-color-formation-pixel-on:  #000000; /* black */
   --my-color-formation-pixel-off: #ffffff; /* white */
+
+  /* Status text colours (aliases to Alert foregrounds) */
+  --my-color-status-success: var(--my-color-alert-success-fg);  /* light = #166534 */
+  --my-color-status-warning: var(--my-color-alert-warning-fg);  /* light = #78350f */
+  --my-color-status-danger:  var(--my-color-alert-error-fg);    /* light = #991b1b */
+
+  /* General danger text (alias to error fg) */
+  --my-color-danger-fg: var(--my-color-alert-error-fg);         /* light = #991b1b */
 }
 
 @media (prefers-color-scheme: dark) {
@@ -147,6 +155,14 @@
     /* Formation Pixel Editor */
     --my-color-formation-pixel-on:  #f3f4f6; /* gray-100: “on” stands out in dark */
     --my-color-formation-pixel-off: #18181b; /* zinc-900: “off” matches surface */
+
+    /* Status text colours (aliases to Alert foregrounds) */
+    --my-color-status-success: var(--my-color-alert-success-fg);  /* dark = #bbf7d0 */
+    --my-color-status-warning: var(--my-color-alert-warning-fg);  /* dark = #fde68a */
+    --my-color-status-danger:  var(--my-color-alert-error-fg);    /* dark = #fecaca */
+
+    /* General danger text */
+    --my-color-danger-fg: var(--my-color-alert-error-fg);         /* dark = #fecaca */
   }
 }
 
@@ -232,6 +248,12 @@ body {
 
   --color-formation-pixel-on:       var(--my-color-formation-pixel-on);
   --color-formation-pixel-off:      var(--my-color-formation-pixel-off);
+
+  /* Status + danger text */
+  --color-status-success: var(--my-color-status-success);
+  --color-status-warning: var(--my-color-status-warning);
+  --color-status-danger:  var(--my-color-status-danger);
+  --color-danger-fg:      var(--my-color-danger-fg);
 }
 
 /* Tailwind import must remain last */
