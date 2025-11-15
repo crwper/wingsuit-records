@@ -60,8 +60,8 @@
   --my-color-divider: #e5e7eb;
 
   /* Formation / Mapping grid */
-  --my-color-grid-gutter:         #d1d5db; /* gray-300 */
-  --my-color-grid-empty:          #d1d5db; /* gray-300 */
+  --my-color-grid-gutter:         #ffffff; /* white */
+  --my-color-grid-empty:          #ffffff; /* white */
   --my-color-grid-cell:           #ffffff; /* white */
   --my-color-grid-drop-target:    #ffffff; /* white */
   --my-color-grid-drop-target-b:  #9ca3af; /* gray-400 dashed */
@@ -135,8 +135,8 @@
     --my-color-divider: #1f2937;
 
     /* Formation / Mapping grid */
-    --my-color-grid-gutter:         #3f3f46; /* zinc-700: visible 1px gutters on zinc-900 cards */
-    --my-color-grid-empty:          #3f3f46; /* zinc-700: match gutter so outside tiles blend seamlessly */
+    --my-color-grid-gutter:         #18181b; /* zinc-900 */
+    --my-color-grid-empty:          #18181b; /* zinc-900 */
     --my-color-grid-cell:           #18181b; /* zinc-900: same tone as cards/surfaces */
     --my-color-grid-drop-target:    #18181b; /* zinc-900: preview tile matches cell surface */
     --my-color-grid-drop-target-b:  #a1a1aa; /* zinc-400: dashed outline visible on dark */
