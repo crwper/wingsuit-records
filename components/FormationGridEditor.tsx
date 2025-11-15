@@ -157,7 +157,7 @@ export default function FormationGridEditor({
           }}
         >
           <div
-            className="grid gap-px bg-gray-300 p-px rounded"
+            className="grid gap-px bg-formation-gutter p-px rounded"
             style={{ gridTemplateColumns: `repeat(${cols.length}, ${cellPx}px)` }}
           >
             {rows.map((row) =>
@@ -189,8 +189,8 @@ export default function FormationGridEditor({
         </div>
       </div>
 
-      {error && <div className="text-sm text-red-600">Error: {error}</div>}
-      {info && <div className="text-sm text-green-700">{info}</div>}
+      {error && <div className="text-sm text-danger-fg">Error: {error}</div>}
+      {info && <div className="text-sm text-status-success">{info}</div>}
     </div>
   );
 }

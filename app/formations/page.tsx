@@ -46,7 +46,7 @@ export default async function FormationsPage() {
       {/* Your list */}
       <section className="space-y-2">
         <h2 className="font-semibold">Your formations</h2>
-        {error && <div className="text-sm text-red-600">Error: {error.message}</div>}
+        {error && <div className="text-sm text-danger-fg">Error: {error.message}</div>}
         <ul className="space-y-2">
           {(formations ?? []).map(f => (
             <li key={f.id} className="rounded border bg-card p-3">

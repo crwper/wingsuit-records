@@ -8,7 +8,7 @@ function Submit({label}:{label?:string}) {
   return (
     <button
       type="submit"
-      className="text-sm underline text-red-600 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+      className="text-sm underline text-danger-fg cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
       disabled={pending}
     >
       {pending ? 'Deleting…' : (label ?? 'Delete')}

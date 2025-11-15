@@ -8,7 +8,7 @@ function SubmitDeleteButton({ title }: { title?: string }) {
   return (
     <button
       type="submit"
-      className="text-sm underline text-red-600 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+      className="text-sm underline text-danger-fg cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
       disabled={pending}
       aria-disabled={pending}
       aria-label={title ? `Delete ${title}` : 'Delete formation'}

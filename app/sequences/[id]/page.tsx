@@ -220,7 +220,7 @@ export default async function SequenceEditorPage({
                     <div className="font-medium">
                       Step #{a.step_index} → #{b.step_index}
                     </div>
-                    <div className={`text-xs ${c ? (c.different ? 'text-green-700' : 'text-red-700') : 'text-subtle-foreground'}`}>
+                    <div className={`text-xs ${c ? (c.different ? 'text-status-success' : 'text-status-danger') : 'text-subtle-foreground'}`}>
                       {c
                         ? (c.different
                             ? `PASS (different): overlap ${c.max_overlap_count}/${c.n_size}, threshold ${c.threshold}, rotation ${c.rotation_deg}°, t=(${c.tx},${c.ty})`

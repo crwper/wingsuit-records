@@ -250,7 +250,7 @@ export default function StepMappingVisual({
       <section className="rounded border bg-card p-4">
         <div className="font-semibold text-sm mb-1">Roster</div>
         {roster.length === 0 ? (
-          <div className="text-xs text-amber-700">
+          <div className="text-xs text-status-warning">
             No roster saved for this sequence yet. Save a roster to see numbered slots.
           </div>
         ) : (
@@ -303,7 +303,7 @@ export default function StepMappingVisual({
               }}
             >
               <div
-                className="grid bg-gray-300 p-px rounded"
+                className="grid bg-grid-gutter p-px rounded"
                 style={{
                   gridTemplateColumns: `repeat(${cols}, ${cellSize}px)`,
                   gridTemplateRows: `repeat(${rows}, ${cellSize}px)`,
@@ -348,7 +348,7 @@ export default function StepMappingVisual({
                         key={key}
                         className={[
                           'flex items-center justify-center',
-                          isCell ? 'bg-grid-cell' : 'bg-gray-300',
+                          isCell ? 'bg-grid-cell' : 'bg-grid-empty',
                           isDraggable ? 'cursor-pointer cursor-grab active:cursor-grabbing' : 'cursor-not-allowed',
                         ].join(' ')}
                         style={{ width: cellSize, height: cellSize, userSelect: 'none' }}
@@ -425,7 +425,7 @@ export default function StepMappingVisual({
           Pick up a slot and drag it; both the origin and hovered cell appear blank. Release to commit the swap.
         </div>
 
-        {err && <div className="mt-2 text-xs text-red-600">Error swapping: {err}</div>}
+        {err && <div className="mt-2 text-xs text-danger-fg">Error swapping: {err}</div>}
       </section>
     </div>
   );
