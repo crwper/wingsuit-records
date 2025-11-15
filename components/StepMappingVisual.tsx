@@ -247,7 +247,7 @@ export default function StepMappingVisual({
   return (
     <div className="space-y-4">
       {/* Roster (spacing like your editor) */}
-      <section className="rounded border bg-white p-4">
+      <section className="rounded border bg-card p-4">
         <div className="font-semibold text-sm mb-1">Roster</div>
         {roster.length === 0 ? (
           <div className="text-xs text-amber-700">
@@ -257,7 +257,7 @@ export default function StepMappingVisual({
           <div className="max-h-56 overflow-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-xs text-gray-600">
+                <tr className="text-left text-xs text-muted-foreground">
                   <th className="w-12 pr-2">#</th>
                   <th>Flyer</th>
                 </tr>
@@ -276,11 +276,11 @@ export default function StepMappingVisual({
       </section>
 
       {/* Formation grid with drag-to-swap + ghost */}
-      <section className="rounded border bg-white p-4">
+      <section className="rounded border bg-card p-4">
         <div className="font-semibold text-sm mb-2">Formation</div>
 
         {cells.length === 0 ? (
-          <div className="text-xs text-gray-600">This formation has no cells yet.</div>
+          <div className="text-xs text-muted-foreground">This formation has no cells yet.</div>
         ) : (
           <div
             ref={viewportRef}
@@ -348,7 +348,7 @@ export default function StepMappingVisual({
                         key={key}
                         className={[
                           'flex items-center justify-center',
-                          isCell ? 'bg-white' : 'bg-gray-300',
+                          isCell ? 'bg-grid-cell' : 'bg-gray-300',
                           isDraggable ? 'cursor-pointer cursor-grab active:cursor-grabbing' : 'cursor-not-allowed',
                         ].join(' ')}
                         style={{ width: cellSize, height: cellSize, userSelect: 'none' }}
@@ -357,7 +357,7 @@ export default function StepMappingVisual({
                         {/* 1) Hovered target: dashed blank drop spot */}
                         {isCell && isDropSpot && (
                           <div
-                            className="rounded border border-dashed border-gray-400 bg-white pointer-events-none"
+                            className="rounded border border-dashed border-grid-drop-target bg-grid-drop-target pointer-events-none"
                             style={{ width: cellSize - 8, height: cellSize - 8 }}
                           />
                         )}
@@ -369,7 +369,7 @@ export default function StepMappingVisual({
                         {isCell && !isDropSpot && !hideOriginOnlyGhost && (
                           <div
                             className={`flex items-center justify-center rounded ${
-                              label != null ? 'bg-black text-white' : 'bg-white text-gray-400 border'
+                              label != null ? 'bg-grid-assigned text-grid-assigned-fg' : 'bg-grid-cell text-handle border'
                             } pointer-events-none`}
                             style={{ width: cellSize - 8, height: cellSize - 8, fontSize: 12 }}
                           >
@@ -405,7 +405,7 @@ export default function StepMappingVisual({
                   style={{ width: cellSize, height: cellSize }}
                 >
                   <div
-                    className="flex items-center justify-center rounded bg-black text-white shadow-md"
+                    className="flex items-center justify-center rounded bg-grid-assigned text-grid-assigned-fg shadow-md"
                     style={{ width: cellSize - 8, height: cellSize - 8, fontSize: 12 }}
                   >
                     <span
@@ -421,7 +421,7 @@ export default function StepMappingVisual({
           </div>
         )}
 
-        <div className="text-[11px] text-gray-500 mt-2">
+        <div className="text-[11px] text-subtle-foreground mt-2">
           Pick up a slot and drag it; both the origin and hovered cell appear blank. Release to commit the swap.
         </div>
 

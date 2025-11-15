@@ -24,11 +24,11 @@ export default async function FormationEditorPage({ params }: { params: Promise<
     .order('col', { ascending: true });
 
   return (
-    <main className="mx-auto max-w-2xl p-6 space-y-6 bg-slate-50">
+    <main className="mx-auto max-w-2xl p-6 space-y-6 bg-canvas">
       <header className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">{formation.title}</h1>
-          <p className="text-xs text-gray-600">
+          <p className="text-xs text-muted-foreground">
             Formation editor • Version {formation.version}
           </p>
         </div>
@@ -37,7 +37,7 @@ export default async function FormationEditorPage({ params }: { params: Promise<
         </div>
       </header>
 
-      <section className="rounded border bg-white p-4">
+      <section className="rounded border bg-card p-4">
         <FormationGridEditor
           formationId={formation.id}
           initialCells={cells as { col: number; row: number }[]}

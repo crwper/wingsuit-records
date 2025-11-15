@@ -60,13 +60,13 @@ export default async function StepMappingPage({
   for (const a of assignments) cellIndexByFlyer.set(a.flyer_id, a.formation_cell_index);
 
   return (
-    <main className="mx-auto max-w-2xl p-6 space-y-6 bg-slate-50">
+    <main className="mx-auto max-w-2xl p-6 space-y-6 bg-canvas">
       <header className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">
             Step #{step.step_index} {step.label ? `• ${step.label}` : ''}
           </h1>
-          <p className="text-xs text-gray-600">Mapping editor</p>
+          <p className="text-xs text-muted-foreground">Mapping editor</p>
         </div>
         <div className="flex items-center gap-3">
           <Link className="text-sm underline" href={`/sequences/${sequenceId}`}>
@@ -104,7 +104,7 @@ function SwapForm({
       <input type="hidden" name="sequenceId" value={sequenceId} />
       <input type="hidden" name="stepId" value={stepId} />
       <div>
-        <label className="block text-xs text-gray-600 mb-1">Flyer A</label>
+        <label className="block text-xs text-muted-foreground mb-1">Flyer A</label>
         <select name="flyerA" className="rounded border p-2 text-sm">
           {roster.map((id) => (
             <option key={`A-${id}`} value={id}>{id}</option>
@@ -112,14 +112,14 @@ function SwapForm({
         </select>
       </div>
       <div>
-        <label className="block text-xs text-gray-600 mb-1">Flyer B</label>
+        <label className="block text-xs text-muted-foreground mb-1">Flyer B</label>
         <select name="flyerB" className="rounded border p-2 text-sm">
           {roster.map((id) => (
             <option key={`B-${id}`} value={id}>{id}</option>
           ))}
         </select>
       </div>
-      <button className="rounded bg-black px-3 py-2 text-white text-sm">
+      <button className="rounded border px-3 py-1 text-sm hover:bg-control-hover">
         Swap
       </button>
     </form>

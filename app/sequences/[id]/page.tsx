@@ -102,11 +102,11 @@ export default async function SequenceEditorPage({
   const rosterStr = roster.map((r) => r.flyer_id).join('\n');
 
   return (
-    <main className="mx-auto max-w-2xl p-6 space-y-8 bg-slate-50">
+    <main className="mx-auto max-w-2xl p-6 space-y-8 bg-canvas">
       <header className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">{sequence.title}</h1>
-          <p className="text-xs text-gray-600">
+          <p className="text-xs text-muted-foreground">
             Sequence editor • Created {new Date(sequence.created_at).toLocaleString()}
           </p>
         </div>
@@ -115,7 +115,7 @@ export default async function SequenceEditorPage({
 
       {/* Helpful error hints, optional */}
       {(rosterErr || formationsErr || stepsErr) && (
-        <div className="rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
+        <div className="rounded border border-alert-warning-border bg-alert-warning-surface p-3 text-sm text-alert-warning-fg">
           {rosterErr && <div>Roster error: {rosterErr.message}</div>}
           {formationsErr && <div>Formations error: {formationsErr.message}</div>}
           {stepsErr && <div>Steps error: {stepsErr.message}</div>}
@@ -123,12 +123,12 @@ export default async function SequenceEditorPage({
       )}
 
       {/* Roster form */}
-      <section className="rounded border bg-white p-4 space-y-3">
+      <section className="rounded border bg-card p-4 space-y-3">
         <div className="font-semibold">Roster</div>
         <form action={saveRosterAction} className="space-y-3">
           <input type="hidden" name="sequenceId" value={sequence.id} />
           <div>
-            <label className="block text-xs text-gray-600 mb-1">
+            <label className="block text-xs text-muted-foreground mb-1">
               Flyer IDs (one per line or comma-separated)
             </label>
             <textarea
@@ -139,19 +139,19 @@ export default async function SequenceEditorPage({
               placeholder={'F1\nF2\nF3'}
             />
           </div>
-          <button className="rounded bg-black px-3 py-2 text-white text-sm">
+          <button className="rounded border px-3 py-1 text-sm hover:bg-control-hover">
             Save roster
           </button>
         </form>
       </section>
 
       {/* Add step */}
-      <section className="rounded border bg-white p-4 space-y-3">
+      <section className="rounded border bg-card p-4 space-y-3">
         <div className="font-semibold">Add step</div>
         <form action={addStepAction} className="flex flex-wrap items-end gap-3">
           <input type="hidden" name="sequenceId" value={sequence.id} />
           <div>
-            <label className="block text-xs text-gray-600 mb-1">Formation</label>
+            <label className="block text-xs text-muted-foreground mb-1">Formation</label>
             <select name="formationId" className="rounded border p-2 text-sm">
               {formations.map(f => (
                 <option key={f.id} value={f.id}>{f.title}</option>
@@ -159,21 +159,21 @@ export default async function SequenceEditorPage({
             </select>
           </div>
           <div>
-            <label className="block text-xs text-gray-600 mb-1">Label (optional)</label>
+            <label className="block text-xs text-muted-foreground mb-1">Label (optional)</label>
             <input name="label" className="rounded border p-2 text-sm" placeholder="e.g., Exit" />
           </div>
-          <button className="rounded bg-black px-3 py-2 text-white text-sm">Add step</button>
-          <p className="text-xs text-gray-600">
+          <button className="rounded border px-3 py-1 text-sm hover:bg-control-hover">Add step</button>
+          <p className="text-xs text-muted-foreground">
             Only formations with the same number of cells as the roster are shown.
           </p>
         </form>
       </section>
 
       {/* Steps list */}
-      <section className="rounded border bg-white p-4 space-y-3">
+      <section className="rounded border bg-card p-4 space-y-3">
         <div className="font-semibold">Steps</div>
         {steps.length === 0 ? (
-          <div className="text-sm text-gray-600">No steps yet.</div>
+          <div className="text-sm text-muted-foreground">No steps yet.</div>
         ) : (
           <ul className="space-y-2">
             {steps.map((s) => (
@@ -189,7 +189,7 @@ export default async function SequenceEditorPage({
                     <DeleteStepWithConfirm sequenceId={sequence.id} stepId={s.id} />
                   </div>
                 </div>
-                <div className="text-xs text-gray-600">
+                <div className="text-xs text-muted-foreground">
                   Assignments: {counts[s.id] ?? 0} / {roster.length}
                 </div>
               </li>
@@ -199,7 +199,7 @@ export default async function SequenceEditorPage({
       </section>
 
       {/* Differences HUD */}
-      <section className="rounded border bg-white p-4 space-y-3">
+      <section className="rounded border bg-card p-4 space-y-3">
         <div className="flex items-center justify-between">
           <div className="font-semibold">Differences (adjacent pairs{steps.length > 1 ? ' incl. wrap' : ''})</div>
           <form action={computeDifferencesAction}>
@@ -209,7 +209,7 @@ export default async function SequenceEditorPage({
         </div>
 
         {pairs.length <= 1 ? (
-          <div className="text-sm text-gray-600">Add at least two steps to compute differences.</div>
+          <div className="text-sm text-muted-foreground">Add at least two steps to compute differences.</div>
         ) : (
           <ul className="space-y-2">
             {pairs.map(({ a, b }) => {
@@ -220,7 +220,7 @@ export default async function SequenceEditorPage({
                     <div className="font-medium">
                       Step #{a.step_index} → #{b.step_index}
                     </div>
-                    <div className={`text-xs ${c ? (c.different ? 'text-green-700' : 'text-red-700') : 'text-gray-500'}`}>
+                    <div className={`text-xs ${c ? (c.different ? 'text-green-700' : 'text-red-700') : 'text-subtle-foreground'}`}>
                       {c
                         ? (c.different
                             ? `PASS (different): overlap ${c.max_overlap_count}/${c.n_size}, threshold ${c.threshold}, rotation ${c.rotation_deg}°, t=(${c.tx},${c.ty})`
@@ -229,7 +229,7 @@ export default async function SequenceEditorPage({
                     </div>
                   </div>
                   {c && (
-                    <div className="text-[11px] text-gray-600">
+                    <div className="text-[11px] text-muted-foreground">
                       Computed {new Date(c.computed_at).toLocaleString()}
                     </div>
                   )}

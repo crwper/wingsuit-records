@@ -131,15 +131,15 @@ export default function FormationGridEditor({
     <div className="space-y-3">
       {/* TOP BAR — rotation controls (restored) */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="text-sm text-gray-600">
+        <div className="text-sm text-muted-foreground">
           View: cols {bounds.minCol}..{bounds.maxCol}, rows {bounds.minRow}..{bounds.maxRow}
         </div>
         <div className="flex items-center gap-2">
-          <div className="text-sm text-gray-700">Rotation: {rotation}°</div>
+          <div className="text-sm text-muted-foreground">Rotation: {rotation}°</div>
           <button onClick={() => stepRotation(-45)} className="rounded border px-2 py-1 text-sm">↺ −45°</button>
           <button onClick={() => stepRotation(+45)} className="rounded border px-2 py-1 text-sm">↻ +45°</button>
           <button onClick={() => setRotation(0)} className="rounded border px-2 py-1 text-sm">Reset</button>
-          <button onClick={onSaveRotation} className="rounded bg-black px-3 py-1.5 text-white text-sm">
+          <button onClick={onSaveRotation} className="rounded border px-3 py-1 text-sm hover:bg-control-hover">
             Save rotation
           </button>
         </div>
@@ -167,7 +167,7 @@ export default function FormationGridEditor({
                   <button
                     key={`${col}:${row}`}
                     onClick={() => toggle(col, row)}
-                    className={`w-6 h-6 ${active ? 'bg-black' : 'bg-white'} hover:opacity-80 focus:outline-none`}
+                    className={`w-6 h-6 ${active ? 'bg-formation-pixel-on' : 'bg-formation-pixel-off'} hover:opacity-80 focus:outline-none`}
                     title={`(${col}, ${row})`}
                   />
                 );
@@ -179,13 +179,13 @@ export default function FormationGridEditor({
 
       {/* FOOTER — cells actions */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="text-xs text-gray-600">
+        <div className="text-xs text-muted-foreground">
           Click to toggle cells. Save enforces 4-neighbor connectivity on the server.
         </div>
         <div className="flex gap-2">
-          <button onClick={() => expand(1)} className="rounded border px-2 py-1 text-sm">Expand</button>
-          <button onClick={() => setCellSet(new Set())} className="rounded border px-2 py-1 text-sm">Clear</button>
-          <button onClick={onSaveCells} className="rounded bg-black px-3 py-1.5 text-white text-sm">Save cells</button>
+          <button onClick={() => expand(1)} className="rounded border px-3 py-1 text-sm hover:bg-control-hover">Expand</button>
+          <button onClick={() => setCellSet(new Set())} className="rounded border px-3 py-1 text-sm hover:bg-control-hover">Clear</button>
+          <button onClick={onSaveCells} className="rounded border px-3 py-1 text-sm hover:bg-control-hover">Save cells</button>
         </div>
       </div>
 

@@ -1,12 +1,152 @@
+/* app/globals.css */
 :root {
+  /* existing app-level tokens */
   --background: #ffffff;
   --foreground: #171717;
+
+  /* ──────────────────────────────────────────
+     Semantic color tokens (LIGHT MODE VALUES)
+     ────────────────────────────────────────── */
+
+  /* Surfaces */
+  --my-color-card: #ffffff;         /* panels/forms/cards (was bg-white) */
+  --my-color-header: #ffffff;       /* header + app-nav bars (was bg-white) */
+  --my-color-canvas: #f8fafc;       /* page canvas (was bg-slate-50) */
+
+  /* Neutral controls */
+  --my-color-control: transparent;  /* icon-only, neutral controls (was bg-transparent) */
+  --my-color-control-hover: #f9fafb;    /* gray-50  (was hover:bg-gray-50) */
+  --my-color-control-pressed: #f3f4f6;  /* gray-100 (was active:bg-gray-100) */
+  --my-color-input: #d1d5db;            /* border-gray-300 */
+  --my-color-control-ring: #cbd5e1;     /* slate-300 (focus ring) */
+  --my-color-control-accent: #6b7280;   /* gray-500 (checkbox accent) */
+
+  /* Nav tabs */
+  --my-color-nav-item-hover: #f9fafb;   /* gray-50 */
+  --my-color-nav-item-active: #f3f4f6;  /* gray-100 */
+
+  /* Text */
+  --my-color-muted-foreground: #4b5563;   /* gray-600 (labels, helper text) */
+  --my-color-subtle-foreground: #6b7280;  /* gray-500 (lighter helper) */
+  --my-color-handle: #9ca3af;             /* gray-400 (drag handle/icon-subtle) */
+
+  /* Destructive actions */
+  --my-color-button-danger-hover: #fef2f2;  /* red-50 */
+  --my-color-danger: #fca5a5;               /* red-300 (ring color) */
+
+  /* Alerts */
+  --my-color-alert-info-surface:    #f8fafc;  /* slate-50  */
+  --my-color-alert-info-border:     #e2e8f0;  /* slate-200 */
+  --my-color-alert-info-fg:         #1e293b;  /* slate-800 */
+
+  --my-color-alert-success-surface: #f0fdf4;  /* green-50  */
+  --my-color-alert-success-border:  #bbf7d0;  /* green-200 */
+  --my-color-alert-success-fg:      #166534;  /* green-800 */
+
+  --my-color-alert-warning-surface: #fffbeb;  /* amber-50  */
+  --my-color-alert-warning-border:  #fde68a;  /* amber-200 */
+  --my-color-alert-warning-fg:      #78350f;  /* amber-900 */
+
+  --my-color-alert-error-surface:   #fef2f2;  /* red-50    */
+  --my-color-alert-error-border:    #fecaca;  /* red-200   */
+  --my-color-alert-error-fg:        #991b1b;  /* red-800   */
+
+  /* Charts */
+  --my-color-chart-goal-line:       #6b7280;  /* gray-500 */
+  --my-color-chart-no-goal-point:   #9ca3af;  /* gray-400 */
+
+  /* Borders and dividers */
+  --my-color-border:  #e5e7eb; /* gray-200 */
+  --my-color-divider: #e5e7eb;
+
+  /* Formation / Mapping grid */
+  --my-color-grid-gutter:         #d1d5db; /* gray-300 */
+  --my-color-grid-empty:          #d1d5db; /* gray-300 */
+  --my-color-grid-cell:           #ffffff; /* white */
+  --my-color-grid-drop-target:    #ffffff; /* white */
+  --my-color-grid-drop-target-b:  #9ca3af; /* gray-400 dashed */
+
+  --my-color-grid-assigned:       #000000; /* black */
+  --my-color-grid-assigned-fg:    #ffffff; /* white */
+
+  /* Formation Pixel Editor */
+  --my-color-formation-pixel-on:  #000000; /* black */
+  --my-color-formation-pixel-off: #ffffff; /* white */
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    /* App-level */
+    --background: #0a0a0a;   /* body/page background (≈ zinc-950) */
+    --foreground: #e5e5e5;   /* primary text */
+
+    /* Surfaces (canvas darkest → card/header lighter) */
+    --my-color-canvas: #0b0b0b;   /* zinc-950-ish */
+    --my-color-header: #18181b;   /* zinc-900 */
+    --my-color-card:   #18181b;   /* zinc-900 */
+
+    /* Neutral controls */
+    --my-color-control: transparent;
+    --my-color-control-hover:   #27272a; /* zinc-800 */
+    --my-color-control-pressed: #3f3f46; /* zinc-700 */
+    --my-color-input:           #3f3f46; /* control/border color */
+    --my-color-control-ring:    #71717a; /* focus ring (zinc-500) */
+    --my-color-control-accent:  #a1a1aa; /* checkbox/radio accent (zinc-400) */
+
+    /* Chips & nav tabs */
+    --my-color-chip-face:      #18181b; /* zinc-900 */
+    --my-color-chip-hover:     #27272a; /* zinc-800 */
+    --my-color-chip-pressed:   #3f3f46; /* zinc-700 */
+    --my-color-nav-item-hover: #27272a; /* zinc-800 */
+    --my-color-nav-item-active:#3f3f46; /* zinc-700 */
+
+    /* Text (relative to --foreground) */
+    --my-color-muted-foreground:  #a1a1aa; /* zinc-400 */
+    --my-color-subtle-foreground: #71717a; /* zinc-500 */
+    --my-color-handle:            #52525b; /* zinc-600 (icons/handles) */
+
+    /* Destructive actions */
+    --my-color-button-danger-hover: #450a0a; /* red-950 */
+    --my-color-danger:              #ef4444; /* red-500 (visible ring in dark) */
+
+    /* Alerts (tinted, non-glare) */
+    --my-color-alert-info-surface:    #0f172a; /* slate-900  */
+    --my-color-alert-info-border:     #334155; /* slate-700  */
+    --my-color-alert-info-fg:         #e2e8f0; /* slate-200  */
+
+    --my-color-alert-success-surface: #052e16; /* green-950 */
+    --my-color-alert-success-border:  #166534; /* green-800 */
+    --my-color-alert-success-fg:      #bbf7d0; /* green-200 */
+
+    --my-color-alert-warning-surface: #451a03; /* amber-950 */
+    --my-color-alert-warning-border:  #92400e; /* amber-800 */
+    --my-color-alert-warning-fg:      #fde68a; /* amber-200 */
+
+    --my-color-alert-error-surface:   #450a0a; /* red-950  */
+    --my-color-alert-error-border:    #991b1b; /* red-800  */
+    --my-color-alert-error-fg:        #fecaca; /* red-200  */
+
+    /* Charts */
+    --my-color-chart-goal-line:     #94a3b8; /* slate-400 */
+    --my-color-chart-no-goal-point: #a1a1aa; /* zinc-400 */
+
+    /* Borders and dividers */
+    --my-color-border:  #1f2937; /* gray-800 */
+    --my-color-divider: #1f2937;
+
+    /* Formation / Mapping grid */
+    --my-color-grid-gutter:         #d1d5db; /* gray-300 */
+    --my-color-grid-empty:          #d1d5db; /* gray-300 */
+    --my-color-grid-cell:           #ffffff; /* white */
+    --my-color-grid-drop-target:    #ffffff; /* white */
+    --my-color-grid-drop-target-b:  #9ca3af; /* gray-400 dashed */
+
+    --my-color-grid-assigned:       #000000; /* black */
+    --my-color-grid-assigned-fg:    #ffffff; /* white */
+
+    /* Formation Pixel Editor */
+    --my-color-formation-pixel-on:  #000000; /* black */
+    --my-color-formation-pixel-off: #ffffff; /* white */
   }
 }
 
@@ -24,21 +164,80 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* base reset */
 @layer base {
-  *, ::before, ::after {
-    box-sizing: border-box;
-  }
-
-  a {
-    color: inherit;
-    text-decoration: none;
-  }
+  *, ::before, ::after { box-sizing: border-box; }
+  a { color: inherit; text-decoration: none; }
 }
 
 @media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
+  html { color-scheme: dark; }
 }
 
+/* Register tokens with Tailwind (so you can use bg-*, text-*, border-*, ring-*, accent-* classes) */
+@theme {
+  --color-card: var(--my-color-card);
+  --color-header: var(--my-color-header);
+  --color-canvas: var(--my-color-canvas);
+
+  --color-control: var(--my-color-control);
+  --color-control-hover: var(--my-color-control-hover);
+  --color-control-pressed: var(--my-color-control-pressed);
+  --color-input: var(--my-color-input);
+  --color-control-ring: var(--my-color-control-ring);
+  --color-control-accent: var(--my-color-control-accent);
+
+  --color-chip-face: var(--my-color-chip-face);
+  --color-chip-hover: var(--my-color-chip-hover);
+  --color-chip-pressed: var(--my-color-chip-pressed);
+  --color-nav-item-hover: var(--my-color-nav-item-hover);
+  --color-nav-item-active: var(--my-color-nav-item-active);
+
+  --color-muted-foreground: var(--my-color-muted-foreground);
+  --color-subtle-foreground: var(--my-color-subtle-foreground);
+  --color-handle: var(--my-color-handle);
+
+  --color-button-danger-hover: var(--my-color-button-danger-hover);
+  --color-danger: var(--my-color-danger);
+
+  --color-alert-info-surface: var(--my-color-alert-info-surface);
+  --color-alert-info-border: var(--my-color-alert-info-border);
+  --color-alert-info-fg: var(--my-color-alert-info-fg);
+
+  --color-alert-success-surface: var(--my-color-alert-success-surface);
+  --color-alert-success-border: var(--my-color-alert-success-border);
+  --color-alert-success-fg: var(--my-color-alert-success-fg);
+
+  --color-alert-warning-surface: var(--my-color-alert-warning-surface);
+  --color-alert-warning-border: var(--my-color-alert-warning-border);
+  --color-alert-warning-fg: var(--my-color-alert-warning-fg);
+
+  --color-alert-error-surface: var(--my-color-alert-error-surface);
+  --color-alert-error-border: var(--my-color-alert-error-border);
+  --color-alert-error-fg: var(--my-color-alert-error-fg);
+
+  --color-chart-goal-line: var(--my-color-chart-goal-line);
+  --color-chart-no-goal-point: var(--my-color-chart-no-goal-point);
+
+  --color-border:  var(--my-color-border);
+  --color-divider: var(--my-color-divider);
+
+  --color-grid-gutter:              var(--my-color-grid-gutter);
+  --color-grid-empty:               var(--my-color-grid-empty);
+  --color-grid-cell:                var(--my-color-grid-cell);
+  --color-grid-drop-target:         var(--my-color-grid-drop-target);
+  --color-grid-drop-target-border:  var(--my-color-grid-drop-target-b);
+  --color-grid-assigned:            var(--my-color-grid-assigned);
+  --color-grid-assigned-fg:         var(--my-color-grid-assigned-fg);
+
+  --color-formation-pixel-on:       var(--my-color-formation-pixel-on);
+  --color-formation-pixel-off:      var(--my-color-formation-pixel-off);
+}
+
+/* Tailwind import must remain last */
 @import "tailwindcss";
+
+/* Set default border color using semantic token */
+@layer base {
+  *, ::before, ::after { border-color: var(--color-border); }
+}

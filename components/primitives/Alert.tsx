@@ -4,10 +4,10 @@ import * as React from 'react';
 type Tone = 'info' | 'success' | 'warning' | 'error';
 
 const toneClasses: Record<Tone, string> = {
-  info:    'text-slate-800 bg-slate-50 border-slate-200',
-  success: 'text-green-800 bg-green-50 border-green-200',
-  warning: 'text-amber-900 bg-amber-50 border-amber-200',
-  error:   'text-red-800 bg-red-50 border-red-200',
+  info:    'text-alert-info-fg bg-alert-info-surface border-alert-info-border',
+  success: 'text-alert-success-fg bg-alert-success-surface border-alert-success-border',
+  warning: 'text-alert-warning-fg bg-alert-warning-surface border-alert-warning-border',
+  error:   'text-alert-error-fg bg-alert-error-surface border-alert-error-border',
 };
 
 const iconFor = (tone: Tone) => {

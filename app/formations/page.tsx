@@ -20,13 +20,13 @@ export default async function FormationsPage() {
     .order('created_at', { ascending: false });
 
   return (
-    <main className="mx-auto max-w-2xl p-6 space-y-6 bg-slate-50">
+    <main className="mx-auto max-w-2xl p-6 space-y-6 bg-canvas">
       <header className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Formations</h1>
       </header>
 
       {/* Create new formation */}
-      <form action={createFormationAction} className="rounded border bg-white p-4 space-y-2">
+      <form action={createFormationAction} className="rounded border bg-card p-4 space-y-2">
         <div className="font-semibold">New formation</div>
         <input
           name="title"
@@ -40,7 +40,7 @@ export default async function FormationsPage() {
           className="w-full border rounded px-2 py-1 text-sm"
           rows={2}
         />
-        <button className="rounded bg-black px-3 py-2 text-white text-sm">Create</button>
+        <button className="rounded border px-3 py-1 text-sm hover:bg-control-hover">Create</button>
       </form>
 
       {/* Your list */}
@@ -49,13 +49,13 @@ export default async function FormationsPage() {
         {error && <div className="text-sm text-red-600">Error: {error.message}</div>}
         <ul className="space-y-2">
           {(formations ?? []).map(f => (
-            <li key={f.id} className="rounded border bg-white p-3">
+            <li key={f.id} className="rounded border bg-card p-3">
               <div className="font-medium">{f.title}</div>
-              <div className="text-xs text-gray-600">
+              <div className="text-xs text-muted-foreground">
                 Created: {new Date(f.created_at).toLocaleString()}
                 {f.updated_at && ' • Updated: ' + new Date(f.updated_at).toLocaleString()}
               </div>
-              {f.notes && <div className="mt-1 text-sm text-gray-700">{f.notes}</div>}
+              {f.notes && <div className="mt-1 text-sm text-muted-foreground">{f.notes}</div>}
 
               <div className="mt-2 flex items-center gap-3">
                 <Link className="text-sm underline" href={`/formations/${f.id}`}>Edit</Link>
@@ -64,7 +64,7 @@ export default async function FormationsPage() {
             </li>
           ))}
           {(!formations || formations.length === 0) && (
-            <li className="text-sm text-gray-600">No formations yet.</li>
+            <li className="text-sm text-muted-foreground">No formations yet.</li>
           )}
         </ul>
       </section>

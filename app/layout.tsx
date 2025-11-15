@@ -39,14 +39,14 @@ export default async function RootLayout({
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body>
-        <header className="border-b bg-white">
+        <header className="border-b bg-header">
           <div className="mx-auto max-w-2xl p-3 flex items-center justify-between">
             <Link href="/formations" className="font-semibold">Wingsuit Records</Link>
             <div className="text-sm">
               {user ? (
                 <form action={logoutAction} className="flex items-center gap-3">
-                  <span className="text-gray-600">Signed in as {user.email}</span>
-                  <button type="submit" className="rounded border px-2 py-1 hover:bg-gray-50">Logout</button>
+                  <span className="text-muted-foreground">Signed in as {user.email}</span>
+                  <button type="submit" className="rounded border px-2 py-1 hover:bg-control-hover">Logout</button>
                 </form>
               ) : (
                 <div className="flex items-center gap-3">

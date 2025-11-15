@@ -15,16 +15,16 @@ export default async function SignupPage({
       {err && <Alert tone="error"><span className="font-medium">Error:</span> {err}</Alert>}
       <form action={signupAction} className="space-y-3">
         <div className="flex flex-col">
-          <label className="text-xs text-gray-600">Email</label>
+          <label className="text-xs text-muted-foreground">Email</label>
           <input name="email" type="email" required className="border rounded px-2 py-1" />
         </div>
         <div className="flex flex-col">
-          <label className="text-xs text-gray-600">Password</label>
+          <label className="text-xs text-muted-foreground">Password</label>
           <input name="password" type="password" required minLength={6} className="border rounded px-2 py-1" />
         </div>
-        <button type="submit" className="rounded border px-3 py-1 text-sm hover:bg-gray-50">Sign up</button>
+        <button type="submit" className="rounded border px-3 py-1 text-sm hover:bg-control-hover">Sign up</button>
       </form>
-      <p className="text-sm text-gray-600">
+      <p className="text-sm text-muted-foreground">
         Already have an account? <Link className="underline" href="/login">Log in</Link>
       </p>
     </main>
